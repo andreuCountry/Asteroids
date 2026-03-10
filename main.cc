@@ -6,17 +6,44 @@
 #include <esat/input.h>
 #include <esat/time.h>
 #include "structs.h"
-#include "sprites/sprites.h"
 
 double current_time, last_time;
 int fps = 60;
 
 float windowX = 800.0f, windowY = 608.0f;
 
+esat::Vec3* points = (esat::Vec3*) malloc (5 * sizeof(esat::Vec3));
+
+Game currentGame;
+
+// Inicializar
+void InitShip() {
+
+}
+
+void InitConfig() {
+    currentGame.actualScene = Scenes::MAIN_MENU;
+}
+
+void DrawMainMenu() {
+
+}
+
+void DrawHighscores() {
+    
+}
+
+void DrawRegisterMenu() {
+    
+}
+
+void DrawGameplay() {
+    
+}
+
 int esat::main(int argc, char **argv) {
 
-    
-
+    InitConfig();
     esat::WindowInit(windowX, windowY);
     esat::WindowSetMouseVisibility(true);
 
@@ -26,7 +53,21 @@ int esat::main(int argc, char **argv) {
         esat::DrawBegin();
         esat::DrawClear(0, 10, 0);
 
-
+        // Draw scenes up
+        switch (currentGame.actualScene) {
+            case Scenes::MAIN_MENU:
+                DrawMainMenu();
+            break;
+            case Scenes::HIGHSCORES:
+                DrawHighscores();
+            break;
+            case Scenes::REGISTER_MENU:
+                DrawRegisterMenu();
+            break;
+            case Scenes::GAMEPLAY:
+                DrawGameplay();
+            break;
+        }
 
         esat::DrawEnd();
 

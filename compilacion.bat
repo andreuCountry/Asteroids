@@ -9,10 +9,7 @@
 
 cl /nologo /Zi /GR- /EHs /MD ^
   %2 ^
-  utils/utils.cc ^
-  sprites/sprites.cc ^
-  enemy/enemy.cc ^
-  objects/objects.cc ^
+  ship/ship.cc ^
 
   -I %1\Desarrollo\Lib_Graph\ESAT_rev248\include ^
   -I . ^
