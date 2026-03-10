@@ -22,6 +22,8 @@ void InitShip() {
 }
 
 void InitConfig() {
+    esat::DrawSetTextFont("./resources/fonts/fuenteSI.ttf");
+    esat::DrawSetTextSize(16);
     currentGame.actualScene = Scenes::MAIN_MENU;
 }
 
@@ -30,15 +32,15 @@ void DrawMainMenu() {
 }
 
 void DrawHighscores() {
-    
+
 }
 
 void DrawRegisterMenu() {
-    
+
 }
 
 void DrawGameplay() {
-    
+
 }
 
 int esat::main(int argc, char **argv) {
