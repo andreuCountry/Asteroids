@@ -12,6 +12,8 @@ enum AsteroidType {
 enum Scenes {
     MAIN_MENU,
     HIGHSCORES,
+    ASK_REGISTER,
+    LOAD_REGISTER,
     REGISTER_MENU,
     GAMEPLAY
 };
