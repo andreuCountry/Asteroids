@@ -8,21 +8,36 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
-// debug
-#include <direct.h>
 
 double current_time, last_time;
 int fps = 60;
 
-float windowX = 800.0f, windowY = 608.0f, tempTime = 0, tempAskRegister = 0;
+float windowX = 800.0f, windowY = 608.0f, tempTime = 0, tempAskRegister = 0, tempStickBar = 0;
 
 esat::Vec3* points = (esat::Vec3*) malloc (5 * sizeof(esat::Vec3));
 
 Game currentGame;
 
+const int numPoints = 5;
+
+// We dont need this
+float pi = 3.141592f;
+
+esat::Vec3 g_figurita[numPoints];
+
+esat::Vec2 stickPosition;
+
+float DegreeToRadians(float degree) {
+    return degree * pi / 180.0f;
+}
+
 // Inicializar
 void InitShip() {
-
+    g_figurita[0] = {cosf(DegreeToRadians(0.0f)) * 40, sinf(DegreeToRadians(0.0f)) * 50, 1.0f};
+    g_figurita[1] = {cosf(DegreeToRadians(160.0f)) * 15, sinf(DegreeToRadians(160.0f)) * 15, 1.0f};
+    g_figurita[2] = {cosf(DegreeToRadians(170.0f)) * 10, sinf(DegreeToRadians(170.0f)) * 10, 1.0f};
+    g_figurita[3] = {cosf(DegreeToRadians(-170.0f)) * 10, sinf(DegreeToRadians(-170.0f)) * 10, 1.0f};
+    g_figurita[4] = {cosf(DegreeToRadians(-160.0f)) * 15, sinf(DegreeToRadians(-160.0f)) * 15, 1.0f};
 }
 
 void InitConfig() {
@@ -30,6 +45,21 @@ void InitConfig() {
     esat::DrawSetTextFont("./Recursos/Fuentes/horrendo.ttf");
     
     currentGame.actualScene = Scenes::MAIN_MENU;
+
+    // Variables que se modifican con el paso del tiempo y de la lectura
+    stickPosition.x = windowX / 7;
+    stickPosition.y = windowY / 4;
+}
+
+void DrawStickBar() {
+
+    int c = ((esat::Time()/100.0f) - tempStickBar);
+
+    esat::DrawSetTextSize(24);
+
+    if (c % 10 != 0) {
+        esat::DrawText(stickPosition.x, stickPosition.y, "--o");
+    }
 }
 
 void ControlsDetect() {
@@ -41,11 +71,11 @@ void ControlsDetect() {
             }
         break;
         case Scenes::ASK_REGISTER:
-            if (esat::IsKeyDown('n')) {
+            if (esat::IsKeyDown('N')) {
                 currentGame.actualScene = Scenes::REGISTER_MENU;
             }
 
-            if (esat::IsKeyDown('y')) {
+            if (esat::IsKeyDown('Y')) {
                 currentGame.actualScene = Scenes::LOAD_REGISTER;
             }
         break;
@@ -56,6 +86,17 @@ void ControlsDetect() {
 
         break;
         case Scenes::REGISTER_MENU:
+            DrawStickBar();
+
+            if (esat::IsSpecialKeyDown(esat::kSpecialKey_Tab)) {
+                if (stickPosition.y == windowY / 2) {
+                    stickPosition.y = windowY / 1.3f;
+                } else if ( stickPosition.y == windowY / 1.3f) {
+                    stickPosition.y = windowY / 4;
+                } else {
+                    stickPosition.y += windowY / 8;
+                }
+            }
 
         break;
         case Scenes::GAMEPLAY:
@@ -65,6 +106,8 @@ void ControlsDetect() {
 }
 
 void DrawMainMenu() {
+    esat::DrawSetFillColor(255, 255, 255, 255);
+
 	int c = ((esat::Time()/100.0f) - tempTime);
 
     esat::DrawSetTextSize(64);
@@ -77,10 +120,14 @@ void DrawMainMenu() {
 }
 
 void DrawHighscores() {
+    esat::DrawSetFillColor(255, 255, 255, 255);
 
 }
 
 void DrawAskRegisterMenu() {
+
+    esat::DrawSetFillColor(255, 255, 255, 255);
+
     int c = ((esat::Time()/100.0f) - tempAskRegister);
 
     if (c % 10 != 0) {
@@ -94,15 +141,60 @@ void DrawAskRegisterMenu() {
 }
 
 void DrawLoadRegister() {
+
+    esat::DrawSetFillColor(255, 255, 255, 255);
+
     esat::DrawText(windowX / 2, windowY / 2, "LOADED");
 }
 
 void DrawRegisterMenu() {
-    esat::DrawText(windowX / 2, windowY / 2, "TACTICS");
+
+    esat::DrawSetFillColor(255, 255, 255, 255);
+
+    esat::DrawSetTextSize(30);
+    esat::DrawText(windowX / 3.5f, windowY / 7, "REGISTER INFO");
+    esat::DrawSetTextSize(24);
+
+    esat::DrawText(windowX / 5, windowY / 4, "NICKNAME: ");
+
+    esat::DrawText(windowX / 5, windowY / 2.65f, "EMAIL: ");
+    
+    esat::DrawText(windowX / 5, windowY / 2, "PASSWORD: ");
+
+    esat::DrawSetTextSize(40);
+    esat::DrawText(windowX / 2.5f, windowY / 1.3f, "SAVE");
 }
 
 void DrawGameplay() {
 
+    esat::DrawSetFillColor(255, 255, 255, 255);
+
+}
+
+esat::Mat3 UpdateFigurita(esat::Vec2 scale, float angle, esat::Vec2 whereMove) {
+    
+    esat::Mat3 m = esat::Mat3Identity();
+    m = esat::Mat3Multiply(esat::Mat3Translate(0.0f, 0.0f), m);
+    m = esat::Mat3Multiply(esat::Mat3Scale(scale.x, scale.y), m);
+    m = esat::Mat3Multiply(esat::Mat3Translate(whereMove.x, whereMove.y), m);
+    m = esat::Mat3Multiply(esat::Mat3Rotate(angle), m);
+
+    return m;
+}
+
+void DrawFigurita(esat::Mat3 m, int numberOfFigures) {
+
+    float points[numPoints * 2];
+
+    m = esat::Mat3Multiply(esat::Mat3Translate(esat::MousePositionX(), esat::MousePositionY()), m);
+
+    for (int i = 0; i < numPoints; i++) {
+        // Necesitamos esto para transformar los Mat3 en Vec3, para dibujar
+        esat::Vec3 tmp = esat::Mat3TransformVec3(m, g_figurita[i]);
+        points[i*2] = tmp.x;
+        points[i*2+1] = tmp.y;
+    }
+    esat::DrawSolidPath(points, numPoints);
 }
 
 int esat::main(int argc, char **argv) {
@@ -111,32 +203,45 @@ int esat::main(int argc, char **argv) {
     esat::WindowSetMouseVisibility(true);
 
     InitConfig();
+    InitShip();
+
+    esat::Mat3 matriz = UpdateFigurita({1.0f, 1.0f}, 0.0f, {0.0f, 0.0f});
 
     while (esat::WindowIsOpened() && !esat::IsSpecialKeyDown(esat::kSpecialKey_Escape)) {
         last_time = esat::Time();
 
         esat::DrawBegin();
-        esat::DrawClear(0, 10, 0);
+        esat::DrawClear(0, 0, 0);
+
 
         // Draw scenes up
         switch (currentGame.actualScene) {
             case Scenes::MAIN_MENU:
+
                 DrawMainMenu();
             break;
             case Scenes::HIGHSCORES:
+
                 DrawHighscores();
             break;
             case Scenes::ASK_REGISTER:
+
                 DrawAskRegisterMenu();
             break;
             case Scenes::LOAD_REGISTER:
+
                 DrawLoadRegister();
             break;
             case Scenes::REGISTER_MENU:
+
                 DrawRegisterMenu();
             break;
             case Scenes::GAMEPLAY:
+
                 DrawGameplay();
+
+                esat::DrawSetFillColor(0, 0, 0, 255);
+                DrawFigurita(matriz, numPoints);
             break;
         }
 
