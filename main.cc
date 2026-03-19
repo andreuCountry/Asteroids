@@ -27,6 +27,25 @@ esat::Vec3 g_figurita[numPoints];
 
 esat::Vec2 stickPosition;
 
+char* nickname = (char*) malloc (1);
+int nicknameLength = 0;
+
+char* email = (char*) malloc (1);
+int emailLength = 0;
+
+char* password = (char*) malloc (1);
+int passwordLength = 0;
+
+int currentField = 0;
+
+FILE *file;
+
+struct User {
+    char* nickname;
+    char* email;
+    char* password;
+};
+
 float DegreeToRadians(float degree) {
     return degree * pi / 180.0f;
 }
@@ -49,6 +68,10 @@ void InitConfig() {
     // Variables que se modifican con el paso del tiempo y de la lectura
     stickPosition.x = windowX / 7;
     stickPosition.y = windowY / 4;
+
+    *(email+0) = '\0';
+    *(nickname+0) = '\0';
+    *(password+0) = '\0'; 
 }
 
 void DrawStickBar() {
@@ -96,12 +119,89 @@ void ControlsDetect() {
                 } else {
                     stickPosition.y += windowY / 8;
                 }
+
+                currentField = (currentField + 1) % 4;
             }
 
         break;
         case Scenes::GAMEPLAY:
 
         break;
+    }
+}
+
+void SaveUser() {
+    
+}
+
+void HandleTextInputDynamic() {
+    char character;
+
+    if (currentField == 0) {
+        for (character = 'A'; character <= 'Z'; character++) {
+
+            // checkeo de la longitud y de la pulsación de tecla
+            if (esat::IsKeyDown(character) && nicknameLength < 3) {
+                nicknameLength++;
+                nickname = (char*) realloc(nickname, nicknameLength + 1);
+                *(nickname+nicknameLength - 1) = character;
+                *(nickname+nicknameLength) = '\0';
+            }
+        }
+
+        for (character = 'a'; character <= 'z'; character++) {
+
+            if (esat::IsKeyDown(character) && nicknameLength < 3) {
+                nicknameLength++;
+                nickname = (char*) realloc(nickname, nicknameLength + 1);
+                *(nickname+nicknameLength - 1) = character;
+                *(nickname+nicknameLength) = '\0';
+            }
+        }
+
+        if (esat::IsSpecialKeyDown(esat::kSpecialKey_Delete) || esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) {
+            nicknameLength--;
+            *(nickname + nicknameLength) = '\0';
+        }
+    }
+
+    if (currentField == 1) {
+        for (int i = 32; i <= 126; i++) {
+            if (esat::IsKeyDown(i)) {
+                emailLength++;
+                email = (char*) realloc(email, emailLength + 1);
+                *(email+emailLength - 1) = i;
+                *(email+emailLength) = '\0';
+            }
+        }
+
+        if (esat::IsSpecialKeyDown(esat::kSpecialKey_Delete) || esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) {
+            emailLength--;
+            *(email+emailLength) = '\0';
+        }
+    }
+
+    if (currentField == 2) {
+        for (int i = 32; i <= 126; i++) {
+            if (esat::IsKeyDown(i)) {
+                passwordLength++;
+                password = (char*) realloc(password, passwordLength + 1);
+                *(password+passwordLength - 1) = (char)i;
+                *(password+passwordLength) = '\0';
+            }
+        }
+
+        if (esat::IsSpecialKeyDown(esat::kSpecialKey_Delete) || esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) {
+            passwordLength--;
+            *(password+passwordLength) = '\0';
+        }
+    }
+
+    if (currentField == 3) {
+        if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
+            SaveUser();
+            currentGame.actualScene = ASK_REGISTER;
+        }
     }
 }
 
@@ -163,6 +263,20 @@ void DrawRegisterMenu() {
 
     esat::DrawSetTextSize(40);
     esat::DrawText(windowX / 2.5f, windowY / 1.3f, "SAVE");
+
+    // nickname
+    esat::DrawText(windowX / 2, windowY / 4, nickname);
+
+    esat::DrawSetTextSize(26);
+    esat::DrawText(windowX / 2, windowY / 2.65f, email);
+
+    // tema de password
+    char hiddenPass[50] = "";
+    for(int i=0; i<passwordLength; i++) *(hiddenPass+i) = '*';
+    hiddenPass[passwordLength] = '\0';
+
+    esat::DrawSetTextSize(40);
+    esat::DrawText(windowX / 2, windowY / 1.9f, hiddenPass);
 }
 
 void DrawGameplay() {
@@ -235,6 +349,7 @@ int esat::main(int argc, char **argv) {
             case Scenes::REGISTER_MENU:
 
                 DrawRegisterMenu();
+                HandleTextInputDynamic();
             break;
             case Scenes::GAMEPLAY:
 
@@ -256,6 +371,10 @@ int esat::main(int argc, char **argv) {
     }
 
     free(points);
+    free(nickname);
+    free(email);
+    free(password);
+
     esat::WindowDestroy();
     return 0;
 }
