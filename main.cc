@@ -181,6 +181,10 @@ void SaveUser() {
     fclose(file);
 }
 
+bool CheckUser() {
+    return true;
+}
+
 void HandleTextInputDynamic() {
     char character;
 
@@ -261,40 +265,40 @@ void HandleTextInputDynamic() {
 void HandleLogin() {
     char character;
 
-    if (currentField == 0) {
+    if (currentLoginField == 0) {
         for (character = 'A'; character <= 'Z'; character++) {
 
             if (esat::IsKeyDown(character) && nicknameLoginLength < 3) {
                 nicknameLoginLength++;
-                nickname = (char*) realloc(nickname, nicknameLength + 1);
-                *(nickname+nicknameLength - 1) = character;
-                *(nickname+nicknameLength) = '\0';
+                nicknameLogin = (char*) realloc(nicknameLogin, nicknameLoginLength + 1);
+                *(nicknameLogin+nicknameLoginLength - 1) = character;
+                *(nicknameLogin+nicknameLoginLength) = '\0';
             }
         }
 
         for (character = 'a'; character <= 'z'; character++) {
 
-            if (esat::IsKeyDown(character) && nicknameLength < 3) {
-                nicknameLength++;
-                nickname = (char*) realloc(nickname, nicknameLength + 1);
-                *(nickname+nicknameLength - 1) = character;
-                *(nickname+nicknameLength) = '\0';
+            if (esat::IsKeyDown(character) && nicknameLoginLength < 3) {
+                nicknameLoginLength++;
+                nicknameLogin = (char*) realloc(nicknameLogin, nicknameLoginLength + 1);
+                *(nicknameLogin+nicknameLoginLength - 1) = character;
+                *(nicknameLogin+nicknameLoginLength) = '\0';
             }
         }
 
         if ((esat::IsSpecialKeyDown(esat::kSpecialKey_Delete) || 
             esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) &&
-            nicknameLength > 0) {
-            nicknameLength--;
-            *(nickname + nicknameLength) = '\0';
+            nicknameLoginLength > 0) {
+            nicknameLoginLength--;
+            *(nicknameLogin + nicknameLoginLength) = '\0';
         }
     }
 
-    if (currentField == 1) {
+    if (currentLoginField == 1) {
         for (int i = 32; i <= 126; i++) {
             if (esat::IsKeyDown(i)) {
-                passwordLength++;
-                password = (char*) realloc(password, passwordLength + 1);
+                passwordLoginLength++;
+                passwordLogin = (char*) realloc(passwordLogin, passwordLoginLength + 1);
                 *(password+passwordLength - 1) = (char)i;
                 *(password+passwordLength) = '\0';
             }
@@ -302,16 +306,19 @@ void HandleLogin() {
 
         if ((esat::IsSpecialKeyDown(esat::kSpecialKey_Delete) || 
             esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace))
-            && passwordLength > 0) {
-            passwordLength--;
-            *(password+passwordLength) = '\0';
+            && passwordLoginLength > 0) {
+            passwordLoginLength--;
+            *(passwordLogin+passwordLoginLength) = '\0';
         }
     }
 
-    if (currentField == 2) {
+    if (currentLoginField == 2) {
         if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
-            SaveUser();
-            currentGame.actualScene = ASK_REGISTER;
+            bool validUser = CheckUser();
+
+            if (validUser) {
+                currentGame.actualScene = GAMEPLAY;
+            }
         }
     }
 }
@@ -362,6 +369,17 @@ void DrawLoadRegister() {
     esat::DrawText(windowX / 3.5f, windowY / 2.5f, "NICKNAME: ");
     esat::DrawText(windowX / 3.5f, windowY / 2, "PASSWORD: ");
     esat::DrawText(windowX / 2.5f, windowY / 1.5f, "PLAY.....");
+
+    // nickname
+    esat::DrawText(windowX / 2, windowY / 2.5f, nicknameLogin);
+
+    // tema de password
+    char hiddenPass[50] = "";
+    for(int i=0; i<passwordLoginLength; i++) *(hiddenPass+i) = '*';
+    hiddenPass[passwordLoginLength] = '\0';
+
+    esat::DrawSetTextSize(40);
+    esat::DrawText(windowX / 2, windowY / 1.9f, hiddenPass);
 }
 
 void DrawRegisterMenu() {
