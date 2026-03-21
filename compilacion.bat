@@ -9,7 +9,6 @@
 
 cl /nologo /Zi /GR- /EHs /MD ^
   %2 ^
-  ship/ship.cc ^
 
   -I %1\Desarrollo\Lib_Graph\ESAT_rev248\include ^
   -I . ^
