@@ -169,7 +169,7 @@ void SaveUser() {
     user.nickname = nickname;
     user.email = email;
     user.password = password;
-    
+
 
     file = fopen("users.dat", "ab");
 
@@ -360,6 +360,12 @@ void DrawAskRegisterMenu() {
     esat::DrawText(windowX / 1.5f, windowY / 1.5f, "NO (n)");
 }
 
+void DrawBack() {
+
+    esat::DrawSetTextSize(30);
+    esat::DrawText(20, windowY - 50, "BACK (-)");
+}
+
 void DrawLoadRegister() {
 
     esat::DrawSetFillColor(255, 255, 255, 255);
@@ -382,6 +388,8 @@ void DrawLoadRegister() {
 
     esat::DrawSetTextSize(40);
     esat::DrawText(windowX / 2, windowY / 1.9f, hiddenPass);
+
+    DrawBack();
 }
 
 void DrawRegisterMenu() {
@@ -414,6 +422,8 @@ void DrawRegisterMenu() {
 
     esat::DrawSetTextSize(40);
     esat::DrawText(windowX / 2, windowY / 1.9f, hiddenPass);
+
+    DrawBack();
 }
 
 void DrawGameplay() {
