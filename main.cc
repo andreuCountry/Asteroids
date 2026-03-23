@@ -79,7 +79,7 @@ void InitConfig() {
 
     // Variables que se modifican con el login
     stickLoginPosition.x = windowX / 7;
-    stickPosition.y = windowY / 2.5;
+    stickLoginPosition.y = windowY / 2.5f;
 
     *(email+0) = '\0';
     *(nickname+0) = '\0';
@@ -128,15 +128,16 @@ void ControlsDetect() {
             
         break;
         case Scenes::LOAD_REGISTER:
-            DrawStickBar();
+            DrawStickLoginBar();
 
             if (esat::IsSpecialKeyDown(esat::kSpecialKey_Tab)) {
-                if (stickPosition.y == windowY / 2.5f) {
-                    stickPosition.y = windowY / 2;
-                } else if ( stickPosition.y == windowY / 2) {
-                    stickPosition.y = windowY / 1.5f;
-                } else if (stickPosition.y == windowY / 1.5f){
-                    stickPosition.y = windowY / 2.5f;
+                if (stickLoginPosition.y == windowY / 2.5f) {
+                    printf("hola");
+                    stickLoginPosition.y = windowY / 2;
+                } else if ( stickLoginPosition.y == windowY / 2) {
+                    stickLoginPosition.y = windowY / 1.5f;
+                } else if (stickLoginPosition.y == windowY / 1.5f){
+                    stickLoginPosition.y = windowY / 2.5f;
                 }
 
                 currentLoginField = (currentLoginField + 1) % 3;
@@ -168,6 +169,7 @@ void SaveUser() {
     user.nickname = nickname;
     user.email = email;
     user.password = password;
+    
 
     file = fopen("users.dat", "ab");
 
