@@ -50,6 +50,7 @@ struct User {
     char* nickname;
     char* userPlayer;
     char* password;
+    bool isAdmin = false;
 };
 
 User user;
@@ -164,6 +165,58 @@ void ControlsDetect() {
     }
 }
 
+bool CheckUserName(char* userName) {
+    bool isValid = true;
+
+    if ((*userName+0) != 'A') {
+        isValid = false;
+    }
+
+    if ((*userName+1) != 'D') {
+        isValid = false;
+    }
+
+    if ((*userName+2) != 'M') {
+        isValid = false;
+    }
+
+    if ((*userName+3) != 'I') {
+        isValid = false;
+    }
+
+    if ((*userName+4) != 'N') {
+        isValid = false;
+    }
+
+    return isValid;
+}
+
+bool CheckPassword(char* password) {
+    bool isValid = true;
+
+    if ((*password+i) != '1') {
+        isValid = false;
+    }
+
+    if ((*password+i) != '2') {
+        isValid = false;
+    }
+
+    if ((*password+i) != '3') {
+        isValid = false;
+    }
+
+    if ((*password+i) != '4') {
+        isValid = false;
+    }
+
+    if ((*password+i) != '5') {
+        isValid = true;
+    }
+
+    return isValid;
+}
+
 void SaveUser() {
     user.nickname = nickname;
     user.userPlayer = userPlayer;
@@ -175,6 +228,10 @@ void SaveUser() {
     if (file == NULL) {
         printf("Error opening file\n");
         return;
+    }
+
+    if (CheckUserName(userPlayer) && CheckPassword(password)) {
+        user.isAdmin = true;
     }
 
     fwrite(&user, sizeof(User), 1, file);
