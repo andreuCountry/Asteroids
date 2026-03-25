@@ -365,7 +365,7 @@ void DrawAskRegisterMenu() {
 void DrawBack() {
 
     esat::DrawSetTextSize(30);
-    esat::DrawText(20, windowY - 50, "BACK (<---)");
+    esat::DrawText(20, windowY - 50, "BACK (o---)");
 }
 
 void DrawLoadRegister() {
