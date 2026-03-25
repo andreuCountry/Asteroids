@@ -544,6 +544,9 @@ int esat::main(int argc, char **argv) {
 
                 DrawHighscores();
             break;
+            case: Scenes::ADMIN_SECTION:
+                DrawAdminSection();
+            break;
             case Scenes::ASK_REGISTER:
 
                 DrawAskRegisterMenu();

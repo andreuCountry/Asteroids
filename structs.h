@@ -12,6 +12,7 @@ enum AsteroidType {
 enum Scenes {
     MAIN_MENU,
     HIGHSCORES,
+    ADMIN_SECTION,
     ASK_REGISTER,
     LOAD_REGISTER,
     REGISTER_MENU,
