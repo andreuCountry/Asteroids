@@ -29,7 +29,7 @@ char* userPlayer = (char*) malloc (1);
 int userPlayerLength = 0, userPlayerMaxLength = 15;
 
 char* password = (char*) malloc (1);
-int passwordLength = 0, passwordMaxLength = 15;;
+int passwordLength = 0, passwordMaxLength = 15;
 
 char* userLogin = (char*) malloc (1);
 int userLoginLength = 0, userLoginMaxLength = 15;
@@ -55,7 +55,7 @@ struct Ship {
     bool isAlive;
 };
 
-User user;
+User user, userLooked;
 
 Ship shipPlayer;
 
@@ -174,23 +174,23 @@ void ControlsDetect() {
 bool CheckUserName(char* userName) {
     bool isValid = true;
 
-    if ((*userName+0) != 'A') {
+    if (*(userName+0) != 'A') {
         isValid = false;
     }
 
-    if ((*userName+1) != 'D') {
+    if (*(userName+1) != 'D') {
         isValid = false;
     }
 
-    if ((*userName+2) != 'M') {
+    if (*(userName+2) != 'M') {
         isValid = false;
     }
 
-    if ((*userName+3) != 'I') {
+    if (*(userName+3) != 'I') {
         isValid = false;
     }
 
-    if ((*userName+4) != 'N') {
+    if (*(userName+4) != 'N') {
         isValid = false;
     }
 
@@ -200,24 +200,24 @@ bool CheckUserName(char* userName) {
 bool CheckPassword(char* password) {
     bool isValid = true;
 
-    if ((*password+0) != '1') {
+    if (*(password+0) != '1') {
         isValid = false;
     }
 
-    if ((*password+1) != '2') {
+    if (*(password+1) != '2') {
         isValid = false;
     }
 
-    if ((*password+2) != '3') {
+    if (*(password+2) != '3') {
         isValid = false;
     }
 
-    if ((*password+3) != '4') {
+    if (*(password+3) != '4') {
         isValid = false;
     }
 
-    if ((*password+4) != '5') {
-        isValid = true;
+    if (*(password+4) != '5') {
+        isValid = false;
     }
 
     return isValid;
@@ -245,8 +245,28 @@ void SaveUser() {
     fclose(file);
 }
 
-bool CheckUser() {
-    return true;
+bool CheckUserAdmin() {
+    return CheckUserName(userPlayer) && CheckPassword(password);
+}
+
+bool CheckOptionalUser() {
+    file = fopen("users.dat", "r+b");
+    bool isValid = false;
+
+    while (fread(&userLooked, sizeof(struct User), 1, file)) {
+        // Add password too
+        printf("[%s] \n", userLooked.userPlayer);
+
+        
+        if (userLogin == userLooked.userPlayer) {
+            printf("Entreeeee \n");
+            isValid = true;
+        }
+    }
+
+    fclose(file);
+
+    return isValid;
 }
 
 void HandleTextInputDynamic() {
@@ -363,8 +383,8 @@ void HandleLogin() {
             if (esat::IsKeyDown(i)  && passwordLoginLength < passwordLoginMaxLength) {
                 passwordLoginLength++;
                 passwordLogin = (char*) realloc(passwordLogin, passwordLoginLength + 1);
-                *(password+passwordLength - 1) = (char)i;
-                *(password+passwordLength) = '\0';
+                *(passwordLogin+passwordLoginLength - 1) = (char)i;
+                *(passwordLogin+passwordLoginLength) = '\0';
             }
         }
 
@@ -377,10 +397,16 @@ void HandleLogin() {
 
     if (currentLoginField == 2) {
         if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
-            bool validUser = CheckUser();
+            bool isUserAdmin = CheckUserAdmin();
+            bool optionalUser = CheckOptionalUser();
 
-            if (validUser) {
-                currentGame.actualScene = GAMEPLAY;
+            if (isUserAdmin) {
+                printf("SOY ADMIN");
+                currentGame.actualScene = ADMIN_SECTION;
+            } else {
+                if (optionalUser) {
+                    currentGame.actualScene = GAMEPLAY;
+                }
             }
         }
     }
@@ -492,7 +518,12 @@ void DrawRegisterMenu() {
 }
 
 void DrawAdminSection() {
+    esat::DrawSetFillColor(255, 255, 255, 255);
 
+    esat::DrawSetTextSize(30);
+    esat::DrawText(windowX / 3.5f, windowY / 7, "ADMIN SECTION:");
+
+    esat::DrawLine(windowX / 7, windowY / 7, windowX / 1.5f, windowY / 7);
 }
 
 void DrawGameplay() {
