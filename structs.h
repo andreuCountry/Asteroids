@@ -24,13 +24,6 @@ struct Collider{
     mlib::Vec2 P2 = {16.0f ,16.0f};
 };
 
-struct Ship {
-    int lifes = 3;
-    bool isReloading = false;
-    bool isAlive = true;
-    Collider collider;
-};
-
 struct Asteroid {
     Collider collider;
     AsteroidType type;
