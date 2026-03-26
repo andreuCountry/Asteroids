@@ -14,16 +14,11 @@ int fps = 60;
 
 float windowX = 800.0f, windowY = 608.0f, tempTime = 0, tempAskRegister = 0, tempStickBar = 0;
 
-esat::Vec3* points = (esat::Vec3*) malloc (5 * sizeof(esat::Vec3));
+const int numPoints = 5, pi = 3.141592f;
+
+esat::Vec3* points = (esat::Vec3*) malloc (numPoints * sizeof(esat::Vec3));
 
 Game currentGame;
-
-const int numPoints = 5;
-
-// We dont need this
-float pi = 3.141592f;
-
-esat::Vec3 g_figurita[numPoints];
 
 esat::Vec2 stickPosition, stickLoginPosition;
 
@@ -51,9 +46,18 @@ struct User {
     char* userPlayer;
     char* password;
     bool isAdmin = false;
+    int credits;
+};
+
+struct Ship {
+    esat::Vec3* points;
+    int lifes;
+    bool isAlive;
 };
 
 User user;
+
+Ship shipPlayer;
 
 float DegreeToRadians(float degree) {
     return degree * pi / 180.0f;
@@ -61,11 +65,13 @@ float DegreeToRadians(float degree) {
 
 // Inicializar
 void InitShip() {
-    g_figurita[0] = {cosf(DegreeToRadians(0.0f)) * 40, sinf(DegreeToRadians(0.0f)) * 50, 1.0f};
-    g_figurita[1] = {cosf(DegreeToRadians(160.0f)) * 15, sinf(DegreeToRadians(160.0f)) * 15, 1.0f};
-    g_figurita[2] = {cosf(DegreeToRadians(170.0f)) * 10, sinf(DegreeToRadians(170.0f)) * 10, 1.0f};
-    g_figurita[3] = {cosf(DegreeToRadians(-170.0f)) * 10, sinf(DegreeToRadians(-170.0f)) * 10, 1.0f};
-    g_figurita[4] = {cosf(DegreeToRadians(-160.0f)) * 15, sinf(DegreeToRadians(-160.0f)) * 15, 1.0f};
+    *(points+0) = {cosf(DegreeToRadians(0.0f)) * 40, sinf(DegreeToRadians(0.0f)) * 50, 1.0f};
+    *(points+1) = {cosf(DegreeToRadians(160.0f)) * 15, sinf(DegreeToRadians(160.0f)) * 15, 1.0f};
+    *(points+2) = {cosf(DegreeToRadians(170.0f)) * 10, sinf(DegreeToRadians(170.0f)) * 10, 1.0f};
+    *(points+3) = {cosf(DegreeToRadians(-170.0f)) * 10, sinf(DegreeToRadians(-170.0f)) * 10, 1.0f};
+    *(points+4) = {cosf(DegreeToRadians(-160.0f)) * 15, sinf(DegreeToRadians(-160.0f)) * 15, 1.0f};
+
+    shipPlayer.points = points;
 }
 
 void InitConfig() {
@@ -194,23 +200,23 @@ bool CheckUserName(char* userName) {
 bool CheckPassword(char* password) {
     bool isValid = true;
 
-    if ((*password+i) != '1') {
+    if ((*password+0) != '1') {
         isValid = false;
     }
 
-    if ((*password+i) != '2') {
+    if ((*password+1) != '2') {
         isValid = false;
     }
 
-    if ((*password+i) != '3') {
+    if ((*password+2) != '3') {
         isValid = false;
     }
 
-    if ((*password+i) != '4') {
+    if ((*password+3) != '4') {
         isValid = false;
     }
 
-    if ((*password+i) != '5') {
+    if ((*password+4) != '5') {
         isValid = true;
     }
 
@@ -485,6 +491,10 @@ void DrawRegisterMenu() {
     DrawBack();
 }
 
+void DrawAdminSection() {
+
+}
+
 void DrawGameplay() {
 
     esat::DrawSetFillColor(255, 255, 255, 255);
@@ -506,11 +516,17 @@ void DrawFigurita(esat::Mat3 m, int numberOfFigures) {
 
     float points[numPoints * 2];
 
-    m = esat::Mat3Multiply(esat::Mat3Translate(esat::MousePositionX(), esat::MousePositionY()), m);
+    m = esat::Mat3Multiply(
+        esat::Mat3Translate(
+            esat::MousePositionX(), 
+            esat::MousePositionY()
+        ), 
+        m
+    );
 
     for (int i = 0; i < numPoints; i++) {
         // Necesitamos esto para transformar los Mat3 en Vec3, para dibujar
-        esat::Vec3 tmp = esat::Mat3TransformVec3(m, g_figurita[i]);
+        esat::Vec3 tmp = esat::Mat3TransformVec3(m, shipPlayer.points[i]);
         points[i*2] = tmp.x;
         points[i*2+1] = tmp.y;
     }
@@ -544,7 +560,7 @@ int esat::main(int argc, char **argv) {
 
                 DrawHighscores();
             break;
-            case: Scenes::ADMIN_SECTION:
+            case Scenes::ADMIN_SECTION:
                 DrawAdminSection();
             break;
             case Scenes::ASK_REGISTER:
