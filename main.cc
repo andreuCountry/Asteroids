@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
+#include <string.h>
 
 double current_time, last_time;
 int fps = 60;
@@ -240,7 +241,23 @@ void SaveUser() {
         user.isAdmin = true;
     }
 
-    fwrite(&user, sizeof(User), 1, file);
+    // fumadinha para saber como insertar y despues leer de la misma manera strings con bloques de memoria
+    char buffer[15];
+
+    strncpy(buffer, user.nickname, 3);
+    buffer[3] = '\0';
+    fwrite(buffer, 3, 1, file);
+
+    strncpy(buffer, user.userPlayer, 15);
+    buffer[14] = '\0';
+    fwrite(buffer, 15, 1, file);
+
+    strncpy(buffer, user.password, 15);
+    buffer[14] = '\0';
+    fwrite(buffer, 15, 1, file);
+
+    fwrite(&user.isAdmin, sizeof(user.isAdmin), 1, file);
+    fwrite(&user.credits, sizeof(user.credits), 1, file);
 
     fclose(file);
 }
@@ -254,8 +271,20 @@ bool CheckOptionalUser() {
     bool isValid = false;
 
     while (fread(&userLooked, sizeof(struct User), 1, file)) {
-        // Add password too
-        printf("[%s] \n", userLooked.userPlayer);
+        char buffer[15];
+
+        fread(buffer, 3, 1, file);
+        strncpy(userLooked.nickname, buffer, 3);
+
+        fread(buffer, 15, 1, file);
+        strncpy(userLooked.userPlayer, buffer, 15);
+
+        fread(buffer, 15, 1, file);
+        strncpy(userLooked.password, buffer, 15);
+
+        fread(&userLooked.isAdmin, sizeof(userLooked.isAdmin), 1, file);
+        fread(&userLooked.credits, sizeof(userLooked.credits), 1, file);
+        //printf("[%s] \n", userLooked.nickname);
 
         
         if (userLogin == userLooked.userPlayer) {
