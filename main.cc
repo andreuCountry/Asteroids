@@ -228,10 +228,9 @@ void SaveUser() {
     user.nickname = nickname;
     user.userPlayer = userPlayer;
     user.password = password;
-
+    user.credits = 3;
 
     file = fopen("users.dat", "ab");
-
     if (file == NULL) {
         printf("Error opening file\n");
         return;
@@ -239,23 +238,13 @@ void SaveUser() {
 
     if (CheckUserName(userPlayer) && CheckPassword(password)) {
         user.isAdmin = true;
+    } else {
+        user.isAdmin = false;
     }
 
-    // fumadinha para saber como insertar y despues leer de la misma manera strings con bloques de memoria
-    char buffer[15];
-
-    strncpy(buffer, user.nickname, 3);
-    buffer[3] = '\0';
-    fwrite(buffer, 3, 1, file);
-
-    strncpy(buffer, user.userPlayer, 15);
-    buffer[14] = '\0';
-    fwrite(buffer, 15, 1, file);
-
-    strncpy(buffer, user.password, 15);
-    buffer[14] = '\0';
-    fwrite(buffer, 15, 1, file);
-
+    fwrite(user.nickname, 3, 1, file);
+    fwrite(user.userPlayer, 14, 1, file);
+    fwrite(user.password, 14, 1, file);
     fwrite(&user.isAdmin, sizeof(user.isAdmin), 1, file);
     fwrite(&user.credits, sizeof(user.credits), 1, file);
 
@@ -267,33 +256,40 @@ bool CheckUserAdmin() {
 }
 
 bool CheckOptionalUser() {
-    file = fopen("users.dat", "r+b");
+    file = fopen("users.dat", "rb");  // solo lectura binaria
+    if (!file) {
+        printf("Error abriendo users.dat\n");
+        return false;
+    }
+
     bool isValid = false;
 
-    while (fread(&userLooked, sizeof(struct User), 1, file)) {
-        char buffer[15];
+    // reservilla de memoria dinamica para hacer coincidir los char con los strings
+    char* tmpNick = (char*) malloc(4);
+    char* tmpUser = (char*) malloc(15);
+    char* tmpPass = (char*) malloc(15);
+    bool admin;
+    int credits;
 
-        fread(buffer, 3, 1, file);
-        strncpy(userLooked.nickname, buffer, 3);
+    FILE* f = fopen("users.dat", "rb");
+    while (fread(tmpNick, 3, 1, f) == 1 && !isValid) {
+        tmpNick[3] = '\0';
+        fread(tmpUser, 14, 1, f); tmpUser[14] = '\0';
+        fread(tmpPass, 14, 1, f); tmpPass[14] = '\0';
+        fread(&admin, sizeof(admin), 1, f);
+        fread(&credits, sizeof(credits), 1, f);
 
-        fread(buffer, 15, 1, file);
-        strncpy(userLooked.userPlayer, buffer, 15);
+        // Necesario para la salud mental
+        printf("nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d\n", tmpNick, tmpUser, tmpPass, admin, credits);
 
-        fread(buffer, 15, 1, file);
-        strncpy(userLooked.password, buffer, 15);
-
-        fread(&userLooked.isAdmin, sizeof(userLooked.isAdmin), 1, file);
-        fread(&userLooked.credits, sizeof(userLooked.credits), 1, file);
-        //printf("[%s] \n", userLooked.nickname);
-
-        
-        if (userLogin == userLooked.userPlayer) {
-            printf("Entreeeee \n");
+        if ((strcmp(tmpUser, userLogin) == 0) && (strcmp(tmpPass, passwordLogin) == 0)) {
             isValid = true;
         }
     }
 
-    fclose(file);
+    fclose(f);
+
+    free(tmpNick); free(tmpUser); free(tmpPass);
 
     return isValid;
 }
@@ -427,7 +423,9 @@ void HandleLogin() {
     if (currentLoginField == 2) {
         if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
             bool isUserAdmin = CheckUserAdmin();
+            printf("%d \n", isUserAdmin);
             bool optionalUser = CheckOptionalUser();
+            printf("%d \n", optionalUser);
 
             if (isUserAdmin) {
                 printf("SOY ADMIN");
