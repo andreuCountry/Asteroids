@@ -21,7 +21,7 @@ esat::Vec3* points = (esat::Vec3*) malloc (numPoints * sizeof(esat::Vec3));
 
 Game currentGame;
 
-esat::Vec2 stickPosition, stickLoginPosition;
+esat::Vec2 stickPosition, stickLoginPosition, adminSectionStickPosition;
 
 char* nickname = (char*) malloc (1);
 int nicknameLength = 0;
@@ -59,10 +59,11 @@ struct Ship {
 };
 
 User user, userLooked;
+User* usersToShow = nullptr;
 
 Ship shipPlayer;
 
-int lastIdInserted = 0;
+int lastIdInserted = 0, countUsersNotDeleted = 0, currentPage = 0;
 
 float DegreeToRadians(float degree) {
     return degree * pi / 180.0f;
@@ -87,18 +88,84 @@ void LoadUsers() {
     }
 
     int id;
+    bool isDeleted;
 
     while (fread(&id, sizeof(id), 1, file) == 1) {
 
         if (id > lastIdInserted) {
-            lastIdInserted = *(&id);
+            lastIdInserted = id;
         }
 
         // saltar la parte restante del user que no me interesa
         fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int), SEEK_CUR);
+
+        fread(&isDeleted, sizeof(isDeleted), 1, file);
+        if (!isDeleted) {
+            countUsersNotDeleted++;
+        }
+
     }
 
-    // printf("id: [%d] \n", lastIdInserted);
+    //printf("id: [%d] \n", lastIdInserted);
+    //printf("counted players not deleted: [%d]", countUsersNotDeleted);
+
+}
+
+void LoadUsersLogin() {
+    file = fopen("users.dat", "r+b");
+    if (file == NULL) {
+        printf("Error opening file\n");
+        return;
+    }
+
+    usersToShow = (User*) malloc(countUsersNotDeleted * sizeof(User));
+    if (usersToShow == NULL) {
+        printf("No hay memoria\n");
+        fclose(file);
+        return;
+    }
+
+    char* tmpNick = (char*) malloc(4);
+    char* tmpUser = (char*) malloc(15);
+    char* tmpPass = (char*) malloc(15);
+
+    bool admin;
+    int credits;
+    int id;
+    bool isDeleted;
+
+    int index = 0;
+
+    while (fread(&id, sizeof(id), 1, file) == 1) {
+        fread(tmpNick, 3, 1, file); tmpNick[3] = '\0';
+        fread(tmpUser, 14, 1, file); tmpUser[14] = '\0';
+        fread(tmpPass, 14, 1, file); tmpPass[14] = '\0';
+        fread(&admin, sizeof(admin), 1, file);
+        fread(&credits, sizeof(credits), 1, file);
+        fread(&isDeleted, sizeof(isDeleted), 1, file);
+
+        if (!isDeleted) {
+
+            unsigned char* ptr = ((unsigned char*)usersToShow) + index * sizeof(User);
+
+            // fumada histórica, para copiar en bloques de memoria, memcpy, parecido al strcpy
+            memcpy(ptr, &id, sizeof(id));
+            memcpy(ptr + offsetof(User, nickname), tmpNick, 4);
+            memcpy(ptr + offsetof(User, userPlayer), tmpUser, 15);
+            memcpy(ptr + offsetof(User, password), tmpPass, 15);
+            memcpy(ptr + offsetof(User, isAdmin), &admin, sizeof(admin));
+            memcpy(ptr + offsetof(User, credits), &credits, sizeof(credits));
+            memcpy(ptr + offsetof(User, isDeleted), &isDeleted, sizeof(isDeleted));
+
+            printf("Usuario #%d id=%d, nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d, isDeleted=%d \n",
+                index+1, id, tmpNick, tmpUser, tmpPass, admin, credits, isDeleted
+            );
+
+            index++;
+        }
+    }
+
+    fclose(file);
 }
 
 void InitConfig() {
@@ -115,11 +182,60 @@ void InitConfig() {
     stickLoginPosition.x = windowX / 7;
     stickLoginPosition.y = windowY / 2.5f;
 
+    adminSectionStickPosition.x = windowX / 12;
+    adminSectionStickPosition.y = windowY / 4;
+
     *(userPlayer+0) = '\0';
     *(nickname+0) = '\0';
     *(password+0) = '\0'; 
 
     LoadUsers();
+}
+
+void ShowPlayersAdminSection() {
+    esat::DrawSetTextSize(20);
+
+    const int usersPerPage = 5;
+
+    int startIndex = currentPage * usersPerPage;
+    int endIndex = startIndex + usersPerPage;
+
+    if (endIndex > countUsersNotDeleted) endIndex = countUsersNotDeleted;
+
+    float y = windowY / 4;
+
+    char* tmpNick = (char*) malloc(4);
+    char* tmpUser = (char*) malloc(15);
+    char* tmpPass = (char*) malloc(15);
+
+    memset(tmpNick, 0, 4);
+    memset(tmpUser, 0, 15);
+    memset(tmpPass, 0, 15);
+
+    for (int i = startIndex; i < endIndex; i++) {
+        unsigned char* u = ((unsigned char*)usersToShow) + i * sizeof(User);
+
+        tmpNick[4] = '\0';
+        memcpy(tmpNick, u + offsetof(User, nickname), 3);
+        tmpUser[14] = '\0';
+        memcpy(tmpUser, u + offsetof(User, userPlayer), 14);
+        tmpPass[14] = '\0';
+        memcpy(tmpPass, u + offsetof(User, password), 14);
+
+        esat::DrawText(120, y, tmpNick);
+        esat::DrawText(120 + 200, y, tmpUser);
+        esat::DrawText(120 + 200 + 200, y, tmpPass);
+
+        if (y == windowY / 4) {
+            y = windowY / 2.75f;
+        } else if (y == windowY / 2.75f) {
+            y = windowY / 2;
+        } else if (y == windowY / 2) {
+            y = windowY / 1.5f;
+        } else if (y == windowY / 1.5f) {
+            y = windowY / 1.2f;
+        }
+    }
 }
 
 void DrawStickBar() {
@@ -130,6 +246,16 @@ void DrawStickBar() {
 
     if (c % 10 != 0) {
         esat::DrawText(stickPosition.x, stickPosition.y, "--o");
+    }
+}
+
+void DrawAdminSectionStickBar() {
+    int c = ((esat::Time()/100.0f) - tempStickBar);
+
+    esat::DrawSetTextSize(24);
+
+    if (c % 10 != 0) {
+        esat::DrawText(adminSectionStickPosition.x, adminSectionStickPosition.y, "--o");
     }
 }
 
@@ -162,6 +288,27 @@ void ControlsDetect() {
         break;
         case Scenes::HIGHSCORES:
             
+        break;
+        case Scenes::ADMIN_SECTION:
+            // Partes estaticas
+            DrawAdminSectionStickBar();
+
+            // Mostrar Usuarios en pantalla dependiendo de la current page y de si estan borrados o no
+            ShowPlayersAdminSection();
+
+            if (esat::IsSpecialKeyDown(esat::kSpecialKey_Tab)) {
+                if (adminSectionStickPosition.y == windowY / 4) {
+                    adminSectionStickPosition.y = windowY / 2.75f;
+                } else if (adminSectionStickPosition.y == windowY / 2.75f) {
+                    adminSectionStickPosition.y = windowY / 2;
+                } else if (adminSectionStickPosition.y == windowY / 2) {
+                    adminSectionStickPosition.y = windowY / 1.5f;
+                } else if (adminSectionStickPosition.y == windowY / 1.5f) {
+                    adminSectionStickPosition.y = windowY / 1.2f;
+                } else if (adminSectionStickPosition.y == windowY / 1.2f) {
+                    adminSectionStickPosition.y = windowY / 4;
+                }
+            }
         break;
         case Scenes::LOAD_REGISTER:
             DrawStickLoginBar();
@@ -257,7 +404,9 @@ void SaveUser() {
     user.userPlayer = userPlayer;
     user.password = password;
     user.credits = 3;
-    user.id = lastIdInserted + 1;
+    lastIdInserted++;
+    user.id = lastIdInserted;
+    user.isDeleted = false;
 
     file = fopen("users.dat", "ab");
     if (file == NULL) {
@@ -277,6 +426,7 @@ void SaveUser() {
     fwrite(user.password, 14, 1, file);
     fwrite(&user.isAdmin, sizeof(user.isAdmin), 1, file);
     fwrite(&user.credits, sizeof(user.credits), 1, file);
+    fwrite(&user.isDeleted, sizeof(user.isDeleted), 1, file);
 
     fclose(file);
 }
@@ -301,9 +451,11 @@ bool CheckOptionalUser() {
     char* tmpNick = (char*) malloc(4);
     char* tmpUser = (char*) malloc(15);
     char* tmpPass = (char*) malloc(15);
+
     bool admin;
     int credits;
     int id;
+    bool isDeleted;
 
     FILE* f = fopen("users.dat", "rb");
     while (fread(&id, sizeof(id), 1, f) == 1 && !isValid) {
@@ -312,9 +464,10 @@ bool CheckOptionalUser() {
         fread(tmpPass, 14, 1, f); tmpPass[14] = '\0';
         fread(&admin, sizeof(admin), 1, f);
         fread(&credits, sizeof(credits), 1, f);
+        fread(&isDeleted, sizeof(isDeleted), 1, f);
 
         // Necesario para la salud mental
-        printf(" id=%d, nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d\n",  id, tmpNick, tmpUser, tmpPass, admin, credits);
+        printf(" id=%d, nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d isDeleted=%d \n",  id, tmpNick, tmpUser, tmpPass, admin, credits, isDeleted);
 
         if ((strcmp(tmpUser, userLogin) == 0) && (strcmp(tmpPass, passwordLogin) == 0)) {
             isValid = true;
@@ -460,6 +613,8 @@ void HandleLogin() {
             bool optionalUser = CheckOptionalUser();
 
             if (isUserAdmin) {
+                // Cargar usuarios para listarlos
+                LoadUsersLogin();
                 currentGame.actualScene = ADMIN_SECTION;
             } else {
                 if (optionalUser) {
@@ -477,7 +632,9 @@ void HandleLogin() {
 void HandleAdminSection() {
     char character;
 
-
+    if (esat::IsKeyDown('P')) {
+        currentGame.actualScene = GAMEPLAY;
+    }
 
     if (esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) {
         currentGame.actualScene = LOAD_REGISTER;
@@ -600,6 +757,7 @@ void DrawAdminSection() {
     esat::DrawText(windowX / 2, windowY - 50, "N (NEXT PAGE)");
     esat::DrawText(windowX / 1.3f, windowY - 50, "L (LAST PAGE)");
 
+    esat::DrawText(windowX - 150, windowY / 7, "PLAY (P)");
 }
 
 void DrawGameplay() {
