@@ -430,10 +430,8 @@ void HandleLogin() {
         if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
             bool isUserAdmin = CheckUserAdmin(true);
             bool optionalUser = CheckOptionalUser();
-            printf("%d \n", optionalUser);
 
             if (isUserAdmin) {
-                printf("SOY ADMIN");
                 currentGame.actualScene = ADMIN_SECTION;
             } else {
                 if (optionalUser) {
@@ -445,6 +443,16 @@ void HandleLogin() {
 
     if (esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) {
         currentGame.actualScene = ASK_REGISTER;
+    }
+}
+
+void HandleAdminSection() {
+    char character;
+
+
+
+    if (esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) {
+        currentGame.actualScene = LOAD_REGISTER;
     }
 }
 
@@ -485,8 +493,8 @@ void DrawAskRegisterMenu() {
 
 void DrawBack() {
 
-    esat::DrawSetTextSize(30);
-    esat::DrawText(20, windowY - 50, "BACK (o---)");
+    esat::DrawSetTextSize(25);
+    esat::DrawText(20, windowY / 7, "BACK (o---)");
 }
 
 void DrawLoadRegister() {
@@ -556,6 +564,14 @@ void DrawAdminSection() {
     esat::DrawText(windowX / 3, windowY / 7, "ADMIN SECTION:");
 
     esat::DrawLine(windowX / 3.1f, windowY / 6, windowX / 1.5f, windowY / 6);
+
+    DrawBack();
+
+    esat::DrawText(20, windowY - 50, "E (EDIT)");
+    esat::DrawText(windowX / 4, windowY - 50, "D (DELETE)");
+    esat::DrawText(windowX / 2, windowY - 50, "N (NEXT PAGE)");
+    esat::DrawText(windowX / 1.3f, windowY - 50, "L (LAST PAGE)");
+
 }
 
 void DrawGameplay() {
@@ -625,6 +641,7 @@ int esat::main(int argc, char **argv) {
             break;
             case Scenes::ADMIN_SECTION:
                 DrawAdminSection();
+                HandleAdminSection();
             break;
             case Scenes::ASK_REGISTER:
 
