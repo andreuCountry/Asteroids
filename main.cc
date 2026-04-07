@@ -49,6 +49,7 @@ struct User {
     char* password;
     bool isAdmin = false;
     int credits;
+    bool isDeleted = false;
 };
 
 struct Ship {
@@ -78,6 +79,28 @@ void InitShip() {
     shipPlayer.points = points;
 }
 
+void LoadUsers() {
+    file = fopen("users.dat", "r+b");
+    if (file == NULL) {
+        printf("Error opening file\n");
+        return;
+    }
+
+    int id;
+
+    while (fread(&id, sizeof(id), 1, file) == 1) {
+
+        if (id > lastIdInserted) {
+            lastIdInserted = *(&id);
+        }
+
+        // saltar la parte restante del user que no me interesa
+        fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int), SEEK_CUR);
+    }
+
+    // printf("id: [%d] \n", lastIdInserted);
+}
+
 void InitConfig() {
 
     esat::DrawSetTextFont("./Recursos/Fuentes/horrendo.ttf");
@@ -95,6 +118,8 @@ void InitConfig() {
     *(userPlayer+0) = '\0';
     *(nickname+0) = '\0';
     *(password+0) = '\0'; 
+
+    LoadUsers();
 }
 
 void DrawStickBar() {
@@ -232,6 +257,7 @@ void SaveUser() {
     user.userPlayer = userPlayer;
     user.password = password;
     user.credits = 3;
+    user.id = lastIdInserted + 1;
 
     file = fopen("users.dat", "ab");
     if (file == NULL) {
@@ -245,6 +271,7 @@ void SaveUser() {
         user.isAdmin = false;
     }
 
+    fwrite(&user.id, sizeof(user.id), 1, file);
     fwrite(user.nickname, 3, 1, file);
     fwrite(user.userPlayer, 14, 1, file);
     fwrite(user.password, 14, 1, file);
@@ -262,7 +289,7 @@ bool CheckUserAdmin(bool isLogin) {
 }
 
 bool CheckOptionalUser() {
-    file = fopen("users.dat", "rb");  // solo lectura binaria
+    file = fopen("users.dat", "rb");
     if (!file) {
         printf("Error abriendo users.dat\n");
         return false;
@@ -276,17 +303,18 @@ bool CheckOptionalUser() {
     char* tmpPass = (char*) malloc(15);
     bool admin;
     int credits;
+    int id;
 
     FILE* f = fopen("users.dat", "rb");
-    while (fread(tmpNick, 3, 1, f) == 1 && !isValid) {
-        tmpNick[3] = '\0';
+    while (fread(&id, sizeof(id), 1, f) == 1 && !isValid) {
+        fread(tmpNick, 3, 1, f); tmpNick[3] = '\0';
         fread(tmpUser, 14, 1, f); tmpUser[14] = '\0';
         fread(tmpPass, 14, 1, f); tmpPass[14] = '\0';
         fread(&admin, sizeof(admin), 1, f);
         fread(&credits, sizeof(credits), 1, f);
 
         // Necesario para la salud mental
-        printf("nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d\n", tmpNick, tmpUser, tmpPass, admin, credits);
+        printf(" id=%d, nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d\n",  id, tmpNick, tmpUser, tmpPass, admin, credits);
 
         if ((strcmp(tmpUser, userLogin) == 0) && (strcmp(tmpPass, passwordLogin) == 0)) {
             isValid = true;
