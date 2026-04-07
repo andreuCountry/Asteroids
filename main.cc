@@ -43,6 +43,7 @@ int currentField = 0, currentLoginField = 0;
 FILE *file;
 
 struct User {
+    int id;
     char* nickname;
     char* userPlayer;
     char* password;
@@ -59,6 +60,8 @@ struct Ship {
 User user, userLooked;
 
 Ship shipPlayer;
+
+int lastIdInserted = 0;
 
 float DegreeToRadians(float degree) {
     return degree * pi / 180.0f;
@@ -251,7 +254,10 @@ void SaveUser() {
     fclose(file);
 }
 
-bool CheckUserAdmin() {
+bool CheckUserAdmin(bool isLogin) {
+    if (isLogin) {
+        return CheckUserName(userLogin) && CheckPassword(passwordLogin);
+    }
     return CheckUserName(userPlayer) && CheckPassword(password);
 }
 
@@ -422,8 +428,7 @@ void HandleLogin() {
 
     if (currentLoginField == 2) {
         if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
-            bool isUserAdmin = CheckUserAdmin();
-            printf("%d \n", isUserAdmin);
+            bool isUserAdmin = CheckUserAdmin(true);
             bool optionalUser = CheckOptionalUser();
             printf("%d \n", optionalUser);
 
@@ -548,9 +553,9 @@ void DrawAdminSection() {
     esat::DrawSetFillColor(255, 255, 255, 255);
 
     esat::DrawSetTextSize(30);
-    esat::DrawText(windowX / 3.5f, windowY / 7, "ADMIN SECTION:");
+    esat::DrawText(windowX / 3, windowY / 7, "ADMIN SECTION:");
 
-    esat::DrawLine(windowX / 7, windowY / 7, windowX / 1.5f, windowY / 7);
+    esat::DrawLine(windowX / 3.1f, windowY / 6, windowX / 1.5f, windowY / 6);
 }
 
 void DrawGameplay() {
