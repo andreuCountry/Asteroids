@@ -74,6 +74,9 @@ Ship shipPlayer;
 
 int lastIdInserted = 0, countUsersNotDeleted = 0, currentPage = 0;
 
+// si esto es true, podemos pasar de pagina en la sección de admin
+bool canPassPage = false;
+
 float DegreeToRadians(float degree) {
     return degree * pi / 180.0f;
 }
@@ -206,6 +209,7 @@ void ShowPlayersAdminSection() {
 
     const int usersPerPage = 4;
 
+    // Calculo de paginación para la sección de usuarios
     int startIndex = currentPage * usersPerPage;
     int endIndex = startIndex + usersPerPage;
 
@@ -217,6 +221,15 @@ void ShowPlayersAdminSection() {
     char* tmpUser = (char*) malloc(15);
     char* tmpPass = (char*) malloc(15);
     
+    // currentPage + 1, esto hace referencia al indice de la proxima linea
+    // usuarios de pagina son los actuales, multiplicado saco los de la proxima pagina
+    // si son menos que countUsersNotDeleted sacamos que se puede pasar
+    if ((currentPage + 1) * usersPerPage < countUsersNotDeleted) {
+        canPassPage = true;
+    } else {
+        canPassPage = false;
+    }
+
     for (int i = startIndex; i < endIndex; i++) {
         char* u = ((char*)usersToShow) + i * 41;
 
@@ -634,6 +647,18 @@ void HandleLogin() {
 
 void HandleAdminSection() {
     char character;
+
+    if (canPassPage) {
+        if (esat::IsKeyDown('N')) {
+            currentPage++;
+        }
+    }
+
+    if (currentPage > 0) {
+        if (esat::IsKeyDown('L')) {
+            currentPage--;
+        }
+    }
 
     if (esat::IsKeyDown('P')) {
         currentGame.actualScene = GAMEPLAY;
