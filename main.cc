@@ -52,6 +52,15 @@ struct User {
     bool isDeleted = false;
 };
 
+// Globales para ir byte por byte en los bloques de memoria para copiar su info y estructurarla
+#define OFFSET_ID        0
+#define OFFSET_NICK      4
+#define OFFSET_USER      7
+#define OFFSET_PASS      21
+#define OFFSET_ADMIN     35
+#define OFFSET_CREDITS   36
+#define OFFSET_DELETED   40
+
 struct Ship {
     esat::Vec3* points;
     int lifes;
@@ -118,7 +127,7 @@ void LoadUsersLogin() {
         return;
     }
 
-    usersToShow = (User*) malloc(countUsersNotDeleted * sizeof(User));
+    usersToShow = (User*) malloc(countUsersNotDeleted * 41);
     if (usersToShow == NULL) {
         printf("No hay memoria\n");
         fclose(file);
@@ -146,16 +155,16 @@ void LoadUsersLogin() {
 
         if (!isDeleted) {
 
-            unsigned char* ptr = ((unsigned char*)usersToShow) + index * sizeof(User);
-
             // fumada histórica, para copiar en bloques de memoria, memcpy, parecido al strcpy
-            memcpy(ptr, &id, sizeof(id));
-            memcpy(ptr + offsetof(User, nickname), tmpNick, 4);
-            memcpy(ptr + offsetof(User, userPlayer), tmpUser, 15);
-            memcpy(ptr + offsetof(User, password), tmpPass, 15);
-            memcpy(ptr + offsetof(User, isAdmin), &admin, sizeof(admin));
-            memcpy(ptr + offsetof(User, credits), &credits, sizeof(credits));
-            memcpy(ptr + offsetof(User, isDeleted), &isDeleted, sizeof(isDeleted));
+            unsigned char* ptr = ((unsigned char*)usersToShow) + index * 41;
+
+            memcpy(ptr + OFFSET_ID, &id, 4);
+            memcpy(ptr + OFFSET_NICK, tmpNick, 3);
+            memcpy(ptr + OFFSET_USER, tmpUser, 14);
+            memcpy(ptr + OFFSET_PASS, tmpPass, 14);
+            memcpy(ptr + OFFSET_ADMIN, &admin, 1);
+            memcpy(ptr + OFFSET_CREDITS, &credits, 4);
+            memcpy(ptr + OFFSET_DELETED, &isDeleted, 1);
 
             printf("Usuario #%d id=%d, nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d, isDeleted=%d \n",
                 index+1, id, tmpNick, tmpUser, tmpPass, admin, credits, isDeleted
@@ -183,7 +192,7 @@ void InitConfig() {
     stickLoginPosition.y = windowY / 2.5f;
 
     adminSectionStickPosition.x = windowX / 12;
-    adminSectionStickPosition.y = windowY / 4;
+    adminSectionStickPosition.y = windowY / 2.75f;
 
     *(userPlayer+0) = '\0';
     *(nickname+0) = '\0';
@@ -195,40 +204,36 @@ void InitConfig() {
 void ShowPlayersAdminSection() {
     esat::DrawSetTextSize(20);
 
-    const int usersPerPage = 5;
+    const int usersPerPage = 4;
 
     int startIndex = currentPage * usersPerPage;
     int endIndex = startIndex + usersPerPage;
 
     if (endIndex > countUsersNotDeleted) endIndex = countUsersNotDeleted;
 
-    float y = windowY / 4;
+    float y = windowY / 2.75f;
 
     char* tmpNick = (char*) malloc(4);
     char* tmpUser = (char*) malloc(15);
     char* tmpPass = (char*) malloc(15);
-
-    memset(tmpNick, 0, 4);
-    memset(tmpUser, 0, 15);
-    memset(tmpPass, 0, 15);
-
+    
     for (int i = startIndex; i < endIndex; i++) {
-        unsigned char* u = ((unsigned char*)usersToShow) + i * sizeof(User);
+        char* u = ((char*)usersToShow) + i * 41;
 
-        tmpNick[4] = '\0';
-        memcpy(tmpNick, u + offsetof(User, nickname), 3);
+        memcpy(tmpNick, u + OFFSET_NICK, 3);
+        tmpNick[3] = '\0';
+
+        memcpy(tmpUser, u + OFFSET_USER, 14);
         tmpUser[14] = '\0';
-        memcpy(tmpUser, u + offsetof(User, userPlayer), 14);
+
+        memcpy(tmpPass, u + OFFSET_PASS, 14);
         tmpPass[14] = '\0';
-        memcpy(tmpPass, u + offsetof(User, password), 14);
 
         esat::DrawText(120, y, tmpNick);
         esat::DrawText(120 + 200, y, tmpUser);
         esat::DrawText(120 + 200 + 200, y, tmpPass);
 
-        if (y == windowY / 4) {
-            y = windowY / 2.75f;
-        } else if (y == windowY / 2.75f) {
+        if (y == windowY / 2.75f) {
             y = windowY / 2;
         } else if (y == windowY / 2) {
             y = windowY / 1.5f;
@@ -297,16 +302,14 @@ void ControlsDetect() {
             ShowPlayersAdminSection();
 
             if (esat::IsSpecialKeyDown(esat::kSpecialKey_Tab)) {
-                if (adminSectionStickPosition.y == windowY / 4) {
-                    adminSectionStickPosition.y = windowY / 2.75f;
-                } else if (adminSectionStickPosition.y == windowY / 2.75f) {
+                if (adminSectionStickPosition.y == windowY / 2.75f) {
                     adminSectionStickPosition.y = windowY / 2;
                 } else if (adminSectionStickPosition.y == windowY / 2) {
                     adminSectionStickPosition.y = windowY / 1.5f;
                 } else if (adminSectionStickPosition.y == windowY / 1.5f) {
                     adminSectionStickPosition.y = windowY / 1.2f;
                 } else if (adminSectionStickPosition.y == windowY / 1.2f) {
-                    adminSectionStickPosition.y = windowY / 4;
+                    adminSectionStickPosition.y = windowY / 2.75f;
                 }
             }
         break;
@@ -747,6 +750,10 @@ void DrawAdminSection() {
 
     esat::DrawSetTextSize(30);
     esat::DrawText(windowX / 3, windowY / 7, "ADMIN SECTION:");
+
+    esat::DrawText(100, windowY / 4, "NICKNAME");
+    esat::DrawText(300, windowY / 4, "USER_NAME");
+    esat::DrawText(500, windowY / 4, "PASSWORD");
 
     esat::DrawLine(windowX / 3.1f, windowY / 6, windowX / 1.5f, windowY / 6);
 
