@@ -39,6 +39,8 @@ char* passwordLogin = (char*) malloc (1);
 int passwordLoginLength = 0, passwordLoginMaxLength = 15;
 
 int currentField = 0, currentLoginField = 0;
+int userId = 0;
+int positionInPage = 1;
 
 FILE *file;
 
@@ -118,6 +120,7 @@ void LoadUsers() {
 
     }
 
+    fclose(file);
     //printf("id: [%d] \n", lastIdInserted);
     //printf("counted players not deleted: [%d]", countUsersNotDeleted);
 
@@ -497,6 +500,78 @@ bool CheckOptionalUser() {
     return isValid;
 }
 
+void MarkUserAsDeleted(int id) {
+    file = fopen("users.dat", "r+b");
+    if (file == NULL) {
+        printf("Error opening file\n");
+        return;
+    }
+
+    int idToDelete;
+
+    while (fread(&idToDelete, sizeof(idToDelete), 1, file) == 1) {
+
+        if (id == idToDelete) {
+            bool deleted = true;
+
+            fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int), SEEK_CUR);
+
+            fwrite(&deleted, sizeof(bool), 1, file);
+            break;
+        }
+
+        // saltamos directamente al siguiente usuario saltando correctamente la memoria
+        fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int) + sizeof(bool), SEEK_CUR);
+
+    }
+
+    fclose(file);
+    LoadUsersLogin();
+}
+
+/*
+    Every time we do tab on adminSection, we need to know which id we need to delete,
+    for that we need to calculate dynamically which one is using the actual page and their position
+    on the list
+*/
+int CalculateIdDynamic(int positionInList) {
+    file = fopen("users.dat", "r+b");
+    if (file == NULL) {
+        printf("Error opening file\n");
+        return -1;
+    }
+
+    int globalPosition = currentPage * 4 + positionInList;
+
+    int id, countDeleted = 0;
+    bool isDeleted;
+
+    while (fread(&id, sizeof(id), 1, file) == 1) {
+
+        // saltar la parte restante del user que no me interesa
+        fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int), SEEK_CUR);
+
+        fread(&isDeleted, sizeof(isDeleted), 1, file);
+        
+        if (!isDeleted) {
+            globalPosition--;
+
+            if (globalPosition == 0) {
+                fclose(file);
+
+                printf("Current id searched: [%d] \n", id);
+
+                return id;
+            }
+        }
+
+    }
+
+    fclose(file);
+
+    return -1;
+}
+
 void HandleTextInputDynamic() {
     char character;
 
@@ -566,6 +641,7 @@ void HandleTextInputDynamic() {
     if (currentField == 3) {
         if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
             SaveUser();
+            LoadUsersLogin();
             currentGame.actualScene = ASK_REGISTER;
         }
     }
@@ -632,6 +708,11 @@ void HandleLogin() {
                 // Cargar usuarios para listarlos
                 LoadUsersLogin();
                 currentGame.actualScene = ADMIN_SECTION;
+                
+                // reset para que apunte siempre al primero
+                adminSectionStickPosition.y = windowY / 2.75f;
+                userId = CalculateIdDynamic(1);
+
             } else {
                 if (optionalUser) {
                     currentGame.actualScene = GAMEPLAY;
@@ -648,16 +729,50 @@ void HandleLogin() {
 void HandleAdminSection() {
     char character;
 
+    if (adminSectionStickPosition.y == (windowY / 2.75f)) {
+        positionInPage = 1;
+    } else if (adminSectionStickPosition.y == (windowY / 2)) {
+        positionInPage = 2;
+    } else if (adminSectionStickPosition.y == (windowY / 1.5f)) {
+        positionInPage = 3;
+    } else if (adminSectionStickPosition.y == (windowY / 1.2f)) {
+        positionInPage = 4;
+    }
+
     if (canPassPage) {
         if (esat::IsKeyDown('N')) {
+            adminSectionStickPosition.y = windowY / 2.75f;
             currentPage++;
+            positionInPage = 1;
+            userId = CalculateIdDynamic(positionInPage);
         }
     }
 
     if (currentPage > 0) {
         if (esat::IsKeyDown('L')) {
+            adminSectionStickPosition.y = windowY / 2.75f;
             currentPage--;
+            positionInPage = 1;
+            userId = CalculateIdDynamic(positionInPage);
         }
+    }
+
+    if (userId != 1) {
+        if (esat::IsKeyDown('D')) {
+            MarkUserAsDeleted(userId);
+        }
+    }
+
+    if (userId != 1) {
+        if (esat::IsKeyDown('E')) {
+            currentGame.actualScene = EDIT_SECTION;
+        }
+    }
+
+    // Calculate dynamic id to know which one we need to delete or edit
+    if (esat::IsSpecialKeyDown(esat::kSpecialKey_Tab)) {
+        positionInPage++;
+        userId = CalculateIdDynamic(positionInPage);
     }
 
     if (esat::IsKeyDown('P')) {
@@ -666,6 +781,14 @@ void HandleAdminSection() {
 
     if (esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) {
         currentGame.actualScene = LOAD_REGISTER;
+    }
+}
+
+void HandleEditSection() {
+    
+    if (esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) {
+        LoadUsersLogin();
+        currentGame.actualScene = ADMIN_SECTION;
     }
 }
 
@@ -792,6 +915,25 @@ void DrawAdminSection() {
     esat::DrawText(windowX - 150, windowY / 7, "PLAY (P)");
 }
 
+void DrawEditSection() {
+    esat::DrawSetFillColor(255, 255, 255, 255);
+
+    esat::DrawSetTextSize(30);
+    esat::DrawText(windowX / 3, windowY / 7, "EDIT USER SECTION:");
+
+    esat::DrawLine(windowX / 3.1f, windowY / 6, windowX / 1.5f, windowY / 6);
+
+    esat::DrawText(windowX / 5, windowY / 4, "NICKNAME: ");
+
+    esat::DrawText(windowX / 5, windowY / 2.65f, "USER: ");
+    
+    esat::DrawText(windowX / 5, windowY / 2, "PASSWORD: ");
+
+    esat::DrawText((windowX / 2.5f) - 20, windowY / 1.3f, "SAVE (S)");
+
+    DrawBack();
+}
+
 void DrawGameplay() {
 
     esat::DrawSetFillColor(255, 255, 255, 255);
@@ -860,6 +1002,10 @@ int esat::main(int argc, char **argv) {
             case Scenes::ADMIN_SECTION:
                 DrawAdminSection();
                 HandleAdminSection();
+            break;
+            case Scenes::EDIT_SECTION:
+                DrawEditSection();
+                HandleEditSection();
             break;
             case Scenes::ASK_REGISTER:
 
