@@ -1203,6 +1203,11 @@ int esat::main(int argc, char **argv) {
     free(nickname);
     free(userPlayer);
     free(password);
+    free(nicknameEdit);
+    free(userLogin);
+    free(passwordLogin);
+    free(passwordEdit);
+    free(userPlayerEdit);
 
     esat::WindowDestroy();
     return 0;
