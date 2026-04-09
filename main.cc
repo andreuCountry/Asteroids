@@ -53,9 +53,6 @@ int positionInPage = 1;
 
 FILE *file;
 
-char *hiddenPass = nullptr;
-int hiddenPassSize = 0;
-
 struct User {
     int id;
     char* nickname;
@@ -104,21 +101,6 @@ void InitShip() {
     *(points+4) = {cosf(DegreeToRadians(-160.0f)) * 15, sinf(DegreeToRadians(-160.0f)) * 15, 1.0f};
 
     shipPlayer.points = points;
-}
-
-void ClearString(char *str, size_t size) {
-    if (!str) return;
-    for (size_t i = 0; i < size; i++) {
-        *(str + i) = '\0';
-    }
-}
-
-void InitHiddenPass(int passwordLength) {
-    if (hiddenPass) {
-        free(hiddenPass);
-    }
-    hiddenPass = (char*) calloc(passwordLength + 1, sizeof(char));
-    hiddenPassSize = passwordLength;
 }
 
 void LoadUsers() {
@@ -689,11 +671,6 @@ void HandleTextInputDynamic() {
     if (currentField == 3) {
         if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
             SaveUser();
-            
-            // Borrar todo, para insertar de nuevo
-            ClearString(nickname, nicknameLength);
-            ClearString(userPlayer, userPlayerLength);
-            ClearString(password, passwordLength);
 
             LoadUsers();
             LoadUsersLogin();
@@ -710,6 +687,7 @@ void HandleLogin() {
     char character;
 
     if (currentLoginField == 0) {
+        printf("hola bb \n");
         for (character = 'A'; character <= 'Z'; character++) {
 
             if (esat::IsKeyDown(character) && userLoginLength < userLoginMaxLength) {
@@ -765,9 +743,6 @@ void HandleLogin() {
                 LoadUsers();
                 LoadUsersLogin();
                 currentGame.actualScene = ADMIN_SECTION;
-
-                ClearString(userLogin, userLoginLength);
-                ClearString(passwordLogin, passwordLoginLength);
                 
                 // reset para que apunte siempre al primero
                 adminSectionStickPosition.y = windowY / 2.75f;
@@ -844,6 +819,43 @@ void HandleAdminSection() {
     }
 }
 
+void EditUser() {
+    file = fopen("users.dat", "r+b");
+    if (file == NULL) {
+        printf("Error opening file\n");
+        return;
+    }
+
+    int id;
+
+    while (fread(&id, sizeof(id), 1, file) == 1) {
+
+        if (userId == id) {
+            printf("Igual \n");
+
+            long pos = ftell(file);
+
+            // posicionar al inicio del usuario
+            fseek(file, pos - sizeof(int), SEEK_SET);
+
+            // saltar el id del usuario actual para ir donde toca
+            fseek(file, sizeof(int), SEEK_CUR);
+
+            fwrite(nicknameEdit, 3, 1, file);
+            fwrite(userPlayerEdit, 14, 1, file);
+            fwrite(passwordEdit, 14, 1, file);
+
+            break;
+        }
+
+        // saltamos directamente al siguiente usuario saltando correctamente la memoria
+        fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int) + sizeof(bool), SEEK_CUR);
+
+    }
+
+    fclose(file);
+}
+
 void HandleEditSection() {
 
     char character;
@@ -913,7 +925,7 @@ void HandleEditSection() {
 
     if (currentEditField == 3) {
         if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
-            // EditUser();
+            EditUser();
             LoadUsers();
             LoadUsersLogin();
             currentGame.actualScene = ADMIN_SECTION;
@@ -984,15 +996,9 @@ void DrawLoadRegister() {
     esat::DrawText(windowX / 2, windowY / 2.5f, userLogin);
 
     // tema de password
-    if (!hiddenPass || hiddenPassSize != passwordLoginLength) {
-        InitHiddenPass(passwordLoginLength);
-    }
-
-    memset(hiddenPass, '*', passwordLoginLength);
+    char hiddenPass[50] = "";
+    for(int i=0; i<passwordLoginLength; i++) *(hiddenPass+i) = '*';
     hiddenPass[passwordLoginLength] = '\0';
-
-    esat::DrawSetTextSize(40);
-    esat::DrawText(windowX / 2, windowY / 1.9f, hiddenPass);
 
     esat::DrawSetTextSize(40);
     esat::DrawText(windowX / 2, windowY / 1.9f, hiddenPass);
@@ -1023,11 +1029,8 @@ void DrawRegisterMenu() {
     esat::DrawSetTextSize(26);
     esat::DrawText(windowX / 2, windowY / 2.65f, userPlayer);
 
-    if (!hiddenPass || hiddenPassSize != passwordLength) {
-        InitHiddenPass(passwordLength);
-    }
-
-    memset(hiddenPass, '*', passwordLength);
+    char hiddenPass[50] = "";
+    for(int i=0; i<passwordLength; i++) *(hiddenPass+i) = '*';
     hiddenPass[passwordLength] = '\0';
 
     esat::DrawSetTextSize(40);
