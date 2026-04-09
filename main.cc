@@ -61,6 +61,7 @@ struct User {
     bool isAdmin = false;
     int credits;
     bool isDeleted = false;
+    int puntuation;
 };
 
 // Globales para ir byte por byte en los bloques de memoria para copiar su info y estructurarla
@@ -110,7 +111,7 @@ void LoadUsers() {
         return;
     }
 
-    int id;
+    int id, puntuation;
     bool isDeleted;
 
     // reset para que no se dupliquen los usuarios no borrados, por mala gestión de esta función
@@ -130,6 +131,7 @@ void LoadUsers() {
             countUsersNotDeleted++;
         }
 
+        fread(&puntuation, sizeof(puntuation), 1, file);
     }
 
     fclose(file);
@@ -160,6 +162,7 @@ void LoadUsersLogin() {
     int credits;
     int id;
     bool isDeleted;
+    int puntuation;
 
     int index = 0;
 
@@ -190,6 +193,8 @@ void LoadUsersLogin() {
 
             index++;
         }
+
+        fread(&puntuation, sizeof(puntuation), 1, file);
     }
 
     fclose(file);
@@ -455,6 +460,7 @@ void SaveUser() {
     lastIdInserted++;
     user.id = lastIdInserted;
     user.isDeleted = false;
+    user.puntuation = 0;
 
     file = fopen("users.dat", "ab");
     if (file == NULL) {
@@ -464,6 +470,7 @@ void SaveUser() {
 
     if (CheckUserName(userPlayer) && CheckPassword(password)) {
         user.isAdmin = true;
+        user.puntuation = 99999;
     } else {
         user.isAdmin = false;
     }
@@ -475,6 +482,7 @@ void SaveUser() {
     fwrite(&user.isAdmin, sizeof(user.isAdmin), 1, file);
     fwrite(&user.credits, sizeof(user.credits), 1, file);
     fwrite(&user.isDeleted, sizeof(user.isDeleted), 1, file);
+    fwrite(&user.puntuation, sizeof(user.puntuation), 1, file);
 
     fclose(file);
 }
@@ -550,7 +558,7 @@ void MarkUserAsDeleted(int id) {
         }
 
         // saltamos directamente al siguiente usuario saltando correctamente la memoria
-        fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int) + sizeof(bool), SEEK_CUR);
+        fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int) + sizeof(bool) + sizeof(int), SEEK_CUR);
 
     }
 
@@ -588,8 +596,6 @@ int CalculateIdDynamic(int positionInList) {
 
             if (globalPosition == 0) {
                 fclose(file);
-
-                printf("Current id searched: [%d] \n", id);
 
                 return id;
             }
@@ -849,7 +855,7 @@ void EditUser() {
         }
 
         // saltamos directamente al siguiente usuario saltando correctamente la memoria
-        fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int) + sizeof(bool), SEEK_CUR);
+        fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int) + sizeof(bool) + sizeof(int), SEEK_CUR);
 
     }
 
