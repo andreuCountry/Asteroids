@@ -72,6 +72,7 @@ struct User {
 #define OFFSET_ADMIN     35
 #define OFFSET_CREDITS   36
 #define OFFSET_DELETED   40
+#define OFFSET_PUNTUA    41
 
 struct Ship {
     esat::Vec3* points;
@@ -147,7 +148,7 @@ void LoadUsersLogin() {
         return;
     }
 
-    usersToShow = (User*) malloc(countUsersNotDeleted * 41);
+    usersToShow = (User*) malloc(countUsersNotDeleted * 45);
     if (usersToShow == NULL) {
         printf("No hay memoria\n");
         fclose(file);
@@ -173,11 +174,12 @@ void LoadUsersLogin() {
         fread(&admin, sizeof(admin), 1, file);
         fread(&credits, sizeof(credits), 1, file);
         fread(&isDeleted, sizeof(isDeleted), 1, file);
+        fread(&puntuation, sizeof(puntuation), 1, file);
 
         if (!isDeleted) {
 
             // fumada histórica, para copiar en bloques de memoria, memcpy, parecido al strcpy
-            unsigned char* ptr = ((unsigned char*)usersToShow) + index * 41;
+            unsigned char* ptr = ((unsigned char*)usersToShow) + index * 45;
 
             memcpy(ptr + OFFSET_ID, &id, 4);
             memcpy(ptr + OFFSET_NICK, tmpNick, 3);
@@ -186,15 +188,15 @@ void LoadUsersLogin() {
             memcpy(ptr + OFFSET_ADMIN, &admin, 1);
             memcpy(ptr + OFFSET_CREDITS, &credits, 4);
             memcpy(ptr + OFFSET_DELETED, &isDeleted, 1);
+            memcpy(ptr + OFFSET_PUNTUA, &puntuation, 4);
 
-            printf("Usuario #%d id=%d, nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d, isDeleted=%d \n",
-                index+1, id, tmpNick, tmpUser, tmpPass, admin, credits, isDeleted
+            printf("Usuario #%d id=%d, nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d, isDeleted=%d puntuation=%d \n",
+                index+1, id, tmpNick, tmpUser, tmpPass, admin, credits, isDeleted, puntuation
             );
 
             index++;
         }
-
-        fread(&puntuation, sizeof(puntuation), 1, file);
+        //printf("puntuation=%d \n", puntuation);
     }
 
     fclose(file);
@@ -253,7 +255,7 @@ void ShowPlayersAdminSection() {
     }
 
     for (int i = startIndex; i < endIndex; i++) {
-        char* u = ((char*)usersToShow) + i * 41;
+        char* u = ((char*)usersToShow) + i * 45;
 
         memcpy(tmpNick, u + OFFSET_NICK, 3);
         tmpNick[3] = '\0';
@@ -512,6 +514,7 @@ bool CheckOptionalUser() {
     int credits;
     int id;
     bool isDeleted;
+    int puntuation;
 
     FILE* f = fopen("users.dat", "rb");
     while (fread(&id, sizeof(id), 1, f) == 1 && !isValid) {
@@ -521,9 +524,10 @@ bool CheckOptionalUser() {
         fread(&admin, sizeof(admin), 1, f);
         fread(&credits, sizeof(credits), 1, f);
         fread(&isDeleted, sizeof(isDeleted), 1, f);
+        fread(&puntuation, sizeof(puntuation), 1, f);
 
         // Necesario para la salud mental
-        printf(" id=%d, nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d isDeleted=%d \n",  id, tmpNick, tmpUser, tmpPass, admin, credits, isDeleted);
+        printf(" id=%d, nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d isDeleted=%d puntuation=%d \n",  id, tmpNick, tmpUser, tmpPass, admin, credits, isDeleted, puntuation);
 
         if ((strcmp(tmpUser, userLogin) == 0) && (strcmp(tmpPass, passwordLogin) == 0)) {
             isValid = true;
@@ -583,6 +587,7 @@ int CalculateIdDynamic(int positionInList) {
 
     int id, countDeleted = 0;
     bool isDeleted;
+    int puntuation;
 
     while (fread(&id, sizeof(id), 1, file) == 1) {
 
@@ -601,6 +606,7 @@ int CalculateIdDynamic(int positionInList) {
             }
         }
 
+        fread(&puntuation, sizeof(puntuation), 1, file);
     }
 
     fclose(file);
@@ -693,7 +699,6 @@ void HandleLogin() {
     char character;
 
     if (currentLoginField == 0) {
-        printf("hola bb \n");
         for (character = 'A'; character <= 'Z'; character++) {
 
             if (esat::IsKeyDown(character) && userLoginLength < userLoginMaxLength) {
@@ -841,10 +846,8 @@ void EditUser() {
 
             long pos = ftell(file);
 
-            // posicionar al inicio del usuario
             fseek(file, pos - sizeof(int), SEEK_SET);
 
-            // saltar el id del usuario actual para ir donde toca
             fseek(file, sizeof(int), SEEK_CUR);
 
             fwrite(nicknameEdit, 3, 1, file);
@@ -854,7 +857,6 @@ void EditUser() {
             break;
         }
 
-        // saltamos directamente al siguiente usuario saltando correctamente la memoria
         fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int) + sizeof(bool) + sizeof(int), SEEK_CUR);
 
     }
