@@ -82,6 +82,7 @@ struct Ship {
 
 User user, userLooked;
 User* usersToShow = nullptr;
+User* usersOrdered = nullptr;
 
 Ship shipPlayer;
 
@@ -190,14 +191,73 @@ void LoadUsersLogin() {
             memcpy(ptr + OFFSET_DELETED, &isDeleted, 1);
             memcpy(ptr + OFFSET_PUNTUA, &puntuation, 4);
 
-            printf("Usuario #%d id=%d, nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d, isDeleted=%d puntuation=%d \n",
-                index+1, id, tmpNick, tmpUser, tmpPass, admin, credits, isDeleted, puntuation
-            );
-
             index++;
         }
         //printf("puntuation=%d \n", puntuation);
     }
+
+    fclose(file);
+}
+
+void LoadUsersOrdered() {
+    file = fopen("users.dat", "r+b");
+    if (file == NULL) {
+        printf("Error opening file\n");
+        return;
+    }
+
+    usersOrdered = (User*) malloc(10 * 45);
+    if (usersOrdered == NULL) {
+        printf("No hay memoria ni jugadores para asociar puntuacion \n");
+        fclose(file);
+        return;
+    }
+
+    char* tmpNick = (char*) malloc(4);
+    char* tmpUser = (char*) malloc(15);
+    char* tmpPass = (char*) malloc(15);
+
+    bool admin;
+    int credits;
+    int id;
+    bool isDeleted;
+    int puntuation;
+    int auxPuntuation = 0;
+
+    int index = 10;
+    /*
+    while (fread(&id, sizeof(id), 1, file) == 1) {
+        fread(tmpNick, 3, 1, file); tmpNick[3] = '\0';
+        fread(tmpUser, 14, 1, file); tmpUser[14] = '\0';
+        fread(tmpPass, 14, 1, file); tmpPass[14] = '\0';
+        fread(&admin, sizeof(admin), 1, file);
+        fread(&credits, sizeof(credits), 1, file);
+        fread(&isDeleted, sizeof(isDeleted), 1, file);
+        fread(&puntuation, sizeof(puntuation), 1, file);
+
+        if (auxPuntuation < puntuation && index != 0) {
+
+            auxPuntuation = puntuation;
+
+            unsigned char* ptr = ((unsigned char*)usersOrdered) + index * 45;
+
+            memcpy(ptr + OFFSET_ID, &id, 4);
+            memcpy(ptr + OFFSET_NICK, tmpNick, 3);
+            memcpy(ptr + OFFSET_USER, tmpUser, 14);
+            memcpy(ptr + OFFSET_PASS, tmpPass, 14);
+            memcpy(ptr + OFFSET_ADMIN, &admin, 1);
+            memcpy(ptr + OFFSET_CREDITS, &credits, 4);
+            memcpy(ptr + OFFSET_DELETED, &isDeleted, 1);
+            memcpy(ptr + OFFSET_PUNTUA, &puntuation, 4);
+
+            printf("Usuario #%d id=%d, nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d, isDeleted=%d puntuation=%d \n",
+                index+1, id, tmpNick, tmpUser, tmpPass, admin, credits, isDeleted, puntuation
+            );
+
+            index--;
+        }
+        //printf("puntuation=%d \n", puntuation);
+    }*/
 
     fclose(file);
 }
@@ -280,6 +340,21 @@ void ShowPlayersAdminSection() {
     }
 }
 
+void ShowOrderedPlayersScore() {
+    esat::DrawSetTextSize(20);
+
+    float y = 80.f;
+
+    char* tmpNick = (char*) malloc(4);
+    char* tmpUser = (char*) malloc(15);
+    int tmpPuntuation = 0;
+
+    for (int i = 0; i < 10; i++) {
+        char* u = ((char*)usersOrdered) + i * 45;
+
+    }
+}
+
 void DrawStickBar() {
 
     int c = ((esat::Time()/100.0f) - tempStickBar);
@@ -315,7 +390,8 @@ void ControlsDetect() {
     switch (currentGame.actualScene) {
         case Scenes::MAIN_MENU:
             if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
-                currentGame.actualScene = Scenes::ASK_REGISTER;
+                LoadUsersOrdered();
+                currentGame.actualScene = Scenes::HIGHSCORES;
                 tempTime = 0;
             }
         break;
@@ -327,9 +403,13 @@ void ControlsDetect() {
             if (esat::IsKeyDown('Y')) {
                 currentGame.actualScene = Scenes::LOAD_REGISTER;
             }
+
+            if (esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) {
+                currentGame.actualScene = Scenes::HIGHSCORES;
+            }
         break;
         case Scenes::HIGHSCORES:
-            
+            ShowOrderedPlayersScore();
         break;
         case Scenes::ADMIN_SECTION:
             // Partes estaticas
@@ -458,7 +538,7 @@ void SaveUser() {
     user.nickname = nickname;
     user.userPlayer = userPlayer;
     user.password = password;
-    user.credits = 3;
+    user.credits = 10;
     lastIdInserted++;
     user.id = lastIdInserted;
     user.isDeleted = false;
@@ -772,6 +852,12 @@ void HandleLogin() {
     }
 }
 
+void HandleHighscoresSection() {
+    if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
+        currentGame.actualScene = ASK_REGISTER;
+    }
+}
+
 void HandleAdminSection() {
     char character;
 
@@ -964,6 +1050,30 @@ void DrawMainMenu() {
 void DrawHighscores() {
     esat::DrawSetFillColor(255, 255, 255, 255);
 
+    esat::DrawSetTextSize(30);
+    esat::DrawText(windowX / 3, 30, "HIGHSCORES REC:");
+    esat::DrawLine(windowX / 3.1f, 45, windowX / 1.5f, 45);
+
+    esat::DrawText(windowX / 4, 80, "1.");
+    esat::DrawText(windowX / 4, 130, "2.");
+    esat::DrawText(windowX / 4, 180, "3.");
+    esat::DrawText(windowX / 4, 230, "4.");
+    esat::DrawText(windowX / 4, 280, "5.");
+    esat::DrawText(windowX / 4, 330, "6.");
+    esat::DrawText(windowX / 4, 380, "7.");
+    esat::DrawText(windowX / 4, 430, "8.");
+    esat::DrawText(windowX / 4, 480, "9.");
+    esat::DrawText((windowX / 4) - 10, 530, "10.");
+
+    esat::DrawSetTextSize(12);
+    esat::DrawText(windowX / 2.2f, windowY - 30, "NEXT (ENTER)");
+
+}
+
+void DrawBack() {
+
+    esat::DrawSetTextSize(25);
+    esat::DrawText(20, windowY / 7, "BACK (o---)");
 }
 
 void DrawAskRegisterMenu() {
@@ -980,12 +1090,10 @@ void DrawAskRegisterMenu() {
     esat::DrawSetTextSize(24);
     esat::DrawText(windowX / 4, windowY / 1.5f, "YES (y)");
     esat::DrawText(windowX / 1.5f, windowY / 1.5f, "NO (n)");
-}
-
-void DrawBack() {
 
     esat::DrawSetTextSize(25);
-    esat::DrawText(20, windowY / 7, "BACK (o---)");
+    esat::DrawText(windowX / 2.4f, windowY - 50, "BACK (o---)");
+
 }
 
 void DrawLoadRegister() {
@@ -1166,6 +1274,7 @@ int esat::main(int argc, char **argv) {
             case Scenes::HIGHSCORES:
 
                 DrawHighscores();
+                HandleHighscoresSection();
             break;
             case Scenes::ADMIN_SECTION:
                 DrawAdminSection();
