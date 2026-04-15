@@ -86,7 +86,7 @@ User* usersOrdered = nullptr;
 
 Ship shipPlayer;
 
-int lastIdInserted = 0, countUsersNotDeleted = 0, currentPage = 0;
+int lastIdInserted = 0, countUsersNotDeleted = 0, currentPage = 0, usersOrderedCount = 0;
 
 // si esto es true, podemos pasar de pagina en la sección de admin
 bool canPassPage = false;
@@ -224,8 +224,7 @@ void LoadUsersOrdered() {
     int puntuation;
     int auxPuntuation = 0;
 
-    int index = 0;
-    
+    int count = 0;
     while (fread(&id, sizeof(id), 1, file) == 1) {
         fread(tmpNick, 3, 1, file); tmpNick[3] = '\0';
         fread(tmpUser, 14, 1, file); tmpUser[14] = '\0';
@@ -235,13 +234,30 @@ void LoadUsersOrdered() {
         fread(&isDeleted, sizeof(isDeleted), 1, file);
         fread(&puntuation, sizeof(puntuation), 1, file);
 
-        // TO_DO, validation correct
-        if (auxPuntuation < puntuation) {
+        if (isDeleted) continue;
 
-            auxPuntuation = puntuation;
+        int pos = 0;
+        for (; pos < count; pos++) {
+            unsigned char* current = ((unsigned char*)usersOrdered) + pos * 45;
 
-            // Necesito calculo de indices empezando desde arriba para tirar hacia abajo
-            unsigned char* ptr = ((unsigned char*)usersOrdered) + index * 45;
+            int currentScore;
+            memcpy(&currentScore, current + OFFSET_PUNTUA, 4);
+
+            if (puntuation > currentScore) {
+                break;
+            }
+        }
+
+        if (pos < 10) {
+
+            for (int j = (count < 10 ? count : 9); j > pos; j--) {
+                unsigned char* destiny = ((unsigned char*)usersOrdered) + j * 45;
+                unsigned char* source = ((unsigned char*)usersOrdered) + (j - 1) * 45;
+
+                memcpy(destiny, source, 45);
+            }
+
+            unsigned char* ptr = ((unsigned char*)usersOrdered) + pos * 45;
 
             memcpy(ptr + OFFSET_ID, &id, 4);
             memcpy(ptr + OFFSET_NICK, tmpNick, 3);
@@ -252,16 +268,13 @@ void LoadUsersOrdered() {
             memcpy(ptr + OFFSET_DELETED, &isDeleted, 1);
             memcpy(ptr + OFFSET_PUNTUA, &puntuation, 4);
 
-            printf("Usuario #%d id=%d, nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d, isDeleted=%d puntuation=%d \n",
-                index+1, id, tmpNick, tmpUser, tmpPass, admin, credits, isDeleted, puntuation
-            );
-
-            index++;
+            if (count < 10) count++;
         }
-        //printf("puntuation=%d \n", puntuation);
     }
 
     fclose(file);
+
+    usersOrderedCount = count;
 }
 
 void InitConfig() {
@@ -359,7 +372,10 @@ void ShowOrderedPlayersScore() {
 
     char* puntuationBuffer = (char*) malloc(6);
 
-    for (int i = 0; i < 10; i++) {
+    // recordamos usar el conteo de los usuarios que hay ordenados, por si hay menos de 10
+    // validación pocha pero nos aseguramos de que no se inserte basura en memoria
+    // además solo trabajamos con los usuarios que tenemos, con máximo de 10
+    for (int i = 0; i < usersOrderedCount; i++) {
         char* u = ((char*)usersOrdered) + i * 45;
 
         memcpy(tmpNick, u + OFFSET_NICK, 3);
@@ -379,9 +395,13 @@ void ShowOrderedPlayersScore() {
         esat::DrawText(250, y, tmpNick);
         esat::DrawText(250 + 100, y, tmpUser);
 
-        // TO_DO, fix letter
-        sprintf(puntuationBuffer, "%d", puntuation);
-        esat::DrawText(200 + 100 + 200, y, puntuationBuffer);
+        // romper bucle para que no muestre basura la conversacion de la puntuation en char *
+        if (tmpNick[0] == '\0') {
+            continue;
+        }
+
+        snprintf(puntuationBuffer, 6, "%d", puntuation);
+        esat::DrawText(550, y, puntuationBuffer);
 
         y += 50.0f;
     }
@@ -437,6 +457,7 @@ void ControlsDetect() {
             }
 
             if (esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) {
+                LoadUsersOrdered();
                 currentGame.actualScene = Scenes::HIGHSCORES;
             }
         break;
