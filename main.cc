@@ -224,8 +224,8 @@ void LoadUsersOrdered() {
     int puntuation;
     int auxPuntuation = 0;
 
-    int index = 10;
-    /*
+    int index = 0;
+    
     while (fread(&id, sizeof(id), 1, file) == 1) {
         fread(tmpNick, 3, 1, file); tmpNick[3] = '\0';
         fread(tmpUser, 14, 1, file); tmpUser[14] = '\0';
@@ -235,10 +235,12 @@ void LoadUsersOrdered() {
         fread(&isDeleted, sizeof(isDeleted), 1, file);
         fread(&puntuation, sizeof(puntuation), 1, file);
 
-        if (auxPuntuation < puntuation && index != 0) {
+        // TO_DO, validation correct
+        if (auxPuntuation < puntuation) {
 
             auxPuntuation = puntuation;
 
+            // Necesito calculo de indices empezando desde arriba para tirar hacia abajo
             unsigned char* ptr = ((unsigned char*)usersOrdered) + index * 45;
 
             memcpy(ptr + OFFSET_ID, &id, 4);
@@ -254,10 +256,10 @@ void LoadUsersOrdered() {
                 index+1, id, tmpNick, tmpUser, tmpPass, admin, credits, isDeleted, puntuation
             );
 
-            index--;
+            index++;
         }
         //printf("puntuation=%d \n", puntuation);
-    }*/
+    }
 
     fclose(file);
 }
@@ -347,11 +349,41 @@ void ShowOrderedPlayersScore() {
 
     char* tmpNick = (char*) malloc(4);
     char* tmpUser = (char*) malloc(15);
-    int tmpPuntuation = 0;
+    char* tmpPass = (char*) malloc(15);
+
+    bool admin;
+    int credits;
+    int id;
+    bool isDeleted;
+    int puntuation;
+
+    char* puntuationBuffer = (char*) malloc(6);
 
     for (int i = 0; i < 10; i++) {
         char* u = ((char*)usersOrdered) + i * 45;
 
+        memcpy(tmpNick, u + OFFSET_NICK, 3);
+        tmpNick[3] = '\0';
+
+        memcpy(tmpUser, u + OFFSET_USER, 14);
+        tmpUser[14] = '\0';
+
+        memcpy(tmpPass, u + OFFSET_PASS, 14);
+        tmpPass[14] = '\0';
+
+        memcpy(&admin, u + OFFSET_ADMIN, 1);
+        memcpy(&credits, u + OFFSET_CREDITS, 4);
+        memcpy(&isDeleted, u + OFFSET_DELETED, 1);
+        memcpy(&puntuation, u + OFFSET_PUNTUA, 4);
+
+        esat::DrawText(250, y, tmpNick);
+        esat::DrawText(250 + 100, y, tmpUser);
+
+        // TO_DO, fix letter
+        sprintf(puntuationBuffer, "%d", puntuation);
+        esat::DrawText(200 + 100 + 200, y, puntuationBuffer);
+
+        y += 50.0f;
     }
 }
 
