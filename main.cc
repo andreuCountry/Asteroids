@@ -82,10 +82,11 @@ struct Ship {
 
 User user, userLooked;
 User* usersToShow = nullptr;
+User* usersOrdered = nullptr;
 
 Ship shipPlayer;
 
-int lastIdInserted = 0, countUsersNotDeleted = 0, currentPage = 0;
+int lastIdInserted = 0, countUsersNotDeleted = 0, currentPage = 0, usersOrderedCount = 0;
 
 // si esto es true, podemos pasar de pagina en la sección de admin
 bool canPassPage = false;
@@ -190,16 +191,90 @@ void LoadUsersLogin() {
             memcpy(ptr + OFFSET_DELETED, &isDeleted, 1);
             memcpy(ptr + OFFSET_PUNTUA, &puntuation, 4);
 
-            printf("Usuario #%d id=%d, nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d, isDeleted=%d puntuation=%d \n",
-                index+1, id, tmpNick, tmpUser, tmpPass, admin, credits, isDeleted, puntuation
-            );
-
             index++;
         }
         //printf("puntuation=%d \n", puntuation);
     }
 
     fclose(file);
+}
+
+void LoadUsersOrdered() {
+    file = fopen("users.dat", "r+b");
+    if (file == NULL) {
+        printf("Error opening file\n");
+        return;
+    }
+
+    usersOrdered = (User*) malloc(10 * 45);
+    if (usersOrdered == NULL) {
+        printf("No hay memoria ni jugadores para asociar puntuacion \n");
+        fclose(file);
+        return;
+    }
+
+    char* tmpNick = (char*) malloc(4);
+    char* tmpUser = (char*) malloc(15);
+    char* tmpPass = (char*) malloc(15);
+
+    bool admin;
+    int credits;
+    int id;
+    bool isDeleted;
+    int puntuation;
+    int auxPuntuation = 0;
+
+    int count = 0;
+    while (fread(&id, sizeof(id), 1, file) == 1) {
+        fread(tmpNick, 3, 1, file); tmpNick[3] = '\0';
+        fread(tmpUser, 14, 1, file); tmpUser[14] = '\0';
+        fread(tmpPass, 14, 1, file); tmpPass[14] = '\0';
+        fread(&admin, sizeof(admin), 1, file);
+        fread(&credits, sizeof(credits), 1, file);
+        fread(&isDeleted, sizeof(isDeleted), 1, file);
+        fread(&puntuation, sizeof(puntuation), 1, file);
+
+        if (isDeleted) continue;
+
+        int pos = 0;
+        for (; pos < count; pos++) {
+            unsigned char* current = ((unsigned char*)usersOrdered) + pos * 45;
+
+            int currentScore;
+            memcpy(&currentScore, current + OFFSET_PUNTUA, 4);
+
+            if (puntuation > currentScore) {
+                break;
+            }
+        }
+
+        if (pos < 10) {
+
+            for (int j = (count < 10 ? count : 9); j > pos; j--) {
+                unsigned char* destiny = ((unsigned char*)usersOrdered) + j * 45;
+                unsigned char* source = ((unsigned char*)usersOrdered) + (j - 1) * 45;
+
+                memcpy(destiny, source, 45);
+            }
+
+            unsigned char* ptr = ((unsigned char*)usersOrdered) + pos * 45;
+
+            memcpy(ptr + OFFSET_ID, &id, 4);
+            memcpy(ptr + OFFSET_NICK, tmpNick, 3);
+            memcpy(ptr + OFFSET_USER, tmpUser, 14);
+            memcpy(ptr + OFFSET_PASS, tmpPass, 14);
+            memcpy(ptr + OFFSET_ADMIN, &admin, 1);
+            memcpy(ptr + OFFSET_CREDITS, &credits, 4);
+            memcpy(ptr + OFFSET_DELETED, &isDeleted, 1);
+            memcpy(ptr + OFFSET_PUNTUA, &puntuation, 4);
+
+            if (count < 10) count++;
+        }
+    }
+
+    fclose(file);
+
+    usersOrderedCount = count;
 }
 
 void InitConfig() {
@@ -280,6 +355,58 @@ void ShowPlayersAdminSection() {
     }
 }
 
+void ShowOrderedPlayersScore() {
+    esat::DrawSetTextSize(20);
+
+    float y = 80.f;
+
+    char* tmpNick = (char*) malloc(4);
+    char* tmpUser = (char*) malloc(15);
+    char* tmpPass = (char*) malloc(15);
+
+    bool admin;
+    int credits;
+    int id;
+    bool isDeleted;
+    int puntuation;
+
+    char* puntuationBuffer = (char*) malloc(6);
+
+    // recordamos usar el conteo de los usuarios que hay ordenados, por si hay menos de 10
+    // validación pocha pero nos aseguramos de que no se inserte basura en memoria
+    // además solo trabajamos con los usuarios que tenemos, con máximo de 10
+    for (int i = 0; i < usersOrderedCount; i++) {
+        char* u = ((char*)usersOrdered) + i * 45;
+
+        memcpy(tmpNick, u + OFFSET_NICK, 3);
+        tmpNick[3] = '\0';
+
+        memcpy(tmpUser, u + OFFSET_USER, 14);
+        tmpUser[14] = '\0';
+
+        memcpy(tmpPass, u + OFFSET_PASS, 14);
+        tmpPass[14] = '\0';
+
+        memcpy(&admin, u + OFFSET_ADMIN, 1);
+        memcpy(&credits, u + OFFSET_CREDITS, 4);
+        memcpy(&isDeleted, u + OFFSET_DELETED, 1);
+        memcpy(&puntuation, u + OFFSET_PUNTUA, 4);
+
+        esat::DrawText(250, y, tmpNick);
+        esat::DrawText(250 + 100, y, tmpUser);
+
+        // romper bucle para que no muestre basura la conversacion de la puntuation en char *
+        if (tmpNick[0] == '\0') {
+            continue;
+        }
+
+        snprintf(puntuationBuffer, 6, "%d", puntuation);
+        esat::DrawText(550, y, puntuationBuffer);
+
+        y += 50.0f;
+    }
+}
+
 void DrawStickBar() {
 
     int c = ((esat::Time()/100.0f) - tempStickBar);
@@ -315,7 +442,8 @@ void ControlsDetect() {
     switch (currentGame.actualScene) {
         case Scenes::MAIN_MENU:
             if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
-                currentGame.actualScene = Scenes::ASK_REGISTER;
+                LoadUsersOrdered();
+                currentGame.actualScene = Scenes::HIGHSCORES;
                 tempTime = 0;
             }
         break;
@@ -327,9 +455,14 @@ void ControlsDetect() {
             if (esat::IsKeyDown('Y')) {
                 currentGame.actualScene = Scenes::LOAD_REGISTER;
             }
+
+            if (esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) {
+                LoadUsersOrdered();
+                currentGame.actualScene = Scenes::HIGHSCORES;
+            }
         break;
         case Scenes::HIGHSCORES:
-            
+            ShowOrderedPlayersScore();
         break;
         case Scenes::ADMIN_SECTION:
             // Partes estaticas
@@ -458,7 +591,7 @@ void SaveUser() {
     user.nickname = nickname;
     user.userPlayer = userPlayer;
     user.password = password;
-    user.credits = 3;
+    user.credits = 10;
     lastIdInserted++;
     user.id = lastIdInserted;
     user.isDeleted = false;
@@ -772,6 +905,12 @@ void HandleLogin() {
     }
 }
 
+void HandleHighscoresSection() {
+    if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
+        currentGame.actualScene = ASK_REGISTER;
+    }
+}
+
 void HandleAdminSection() {
     char character;
 
@@ -964,6 +1103,30 @@ void DrawMainMenu() {
 void DrawHighscores() {
     esat::DrawSetFillColor(255, 255, 255, 255);
 
+    esat::DrawSetTextSize(30);
+    esat::DrawText(windowX / 3, 30, "HIGHSCORES REC:");
+    esat::DrawLine(windowX / 3.1f, 45, windowX / 1.5f, 45);
+
+    esat::DrawText(windowX / 4, 80, "1.");
+    esat::DrawText(windowX / 4, 130, "2.");
+    esat::DrawText(windowX / 4, 180, "3.");
+    esat::DrawText(windowX / 4, 230, "4.");
+    esat::DrawText(windowX / 4, 280, "5.");
+    esat::DrawText(windowX / 4, 330, "6.");
+    esat::DrawText(windowX / 4, 380, "7.");
+    esat::DrawText(windowX / 4, 430, "8.");
+    esat::DrawText(windowX / 4, 480, "9.");
+    esat::DrawText((windowX / 4) - 10, 530, "10.");
+
+    esat::DrawSetTextSize(12);
+    esat::DrawText(windowX / 2.2f, windowY - 30, "NEXT (ENTER)");
+
+}
+
+void DrawBack() {
+
+    esat::DrawSetTextSize(25);
+    esat::DrawText(20, windowY / 7, "BACK (o---)");
 }
 
 void DrawAskRegisterMenu() {
@@ -980,12 +1143,10 @@ void DrawAskRegisterMenu() {
     esat::DrawSetTextSize(24);
     esat::DrawText(windowX / 4, windowY / 1.5f, "YES (y)");
     esat::DrawText(windowX / 1.5f, windowY / 1.5f, "NO (n)");
-}
-
-void DrawBack() {
 
     esat::DrawSetTextSize(25);
-    esat::DrawText(20, windowY / 7, "BACK (o---)");
+    esat::DrawText(windowX / 2.4f, windowY - 50, "BACK (o---)");
+
 }
 
 void DrawLoadRegister() {
@@ -1166,6 +1327,7 @@ int esat::main(int argc, char **argv) {
             case Scenes::HIGHSCORES:
 
                 DrawHighscores();
+                HandleHighscoresSection();
             break;
             case Scenes::ADMIN_SECTION:
                 DrawAdminSection();
