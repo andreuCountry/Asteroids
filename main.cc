@@ -92,7 +92,7 @@ Ship shipPlayer;
 
 const float acceleration = 1.005f;
 const float deceleration = 0.995;
-const float maxSpeed = 15.0f;
+const float maxSpeed = 10.0f;
 const float minimumSpeed = 0.0f;
 
 int lastIdInserted = 0, countUsersNotDeleted = 0, currentPage = 0, usersOrderedCount = 0;
@@ -106,11 +106,11 @@ float DegreeToRadians(float degree) {
 
 // Inicializar
 void InitShip() {
-    *(points+0) = {cosf(DegreeToRadians(0.0f)) * 40, sinf(DegreeToRadians(0.0f)) * 50, 1.0f};
-    *(points+1) = {cosf(DegreeToRadians(160.0f)) * 15, sinf(DegreeToRadians(160.0f)) * 15, 1.0f};
+    *(points+0) = {cosf(DegreeToRadians(0.0f)) * 25, sinf(DegreeToRadians(0.0f)) * 50, 1.0f};
+    *(points+1) = {cosf(DegreeToRadians(160.0f)) * 15, sinf(DegreeToRadians(160.0f)) * 20, 1.0f};
     *(points+2) = {cosf(DegreeToRadians(170.0f)) * 10, sinf(DegreeToRadians(170.0f)) * 10, 1.0f};
     *(points+3) = {cosf(DegreeToRadians(-170.0f)) * 10, sinf(DegreeToRadians(-170.0f)) * 10, 1.0f};
-    *(points+4) = {cosf(DegreeToRadians(-160.0f)) * 15, sinf(DegreeToRadians(-160.0f)) * 15, 1.0f};
+    *(points+4) = {cosf(DegreeToRadians(-160.0f)) * 15, sinf(DegreeToRadians(-160.0f)) * 20, 1.0f};
 
     shipPlayer.centralPoint = {windowX / 2, windowY / 2, 1.0f};
     shipPlayer.points = points;
@@ -1377,12 +1377,21 @@ int esat::main(int argc, char **argv) {
 
                 if (esat::IsKeyPressed('W')) {
                     shipPlayer.acceleration = {
-                        cosf(shipPlayer.angle) * 0.2f,
-                        sinf(shipPlayer.angle) * 0.2f
+                        cosf(shipPlayer.angle) * 0.1f,
+                        sinf(shipPlayer.angle) * 0.1f
                     };
 
-                    shipPlayer.speed.x += shipPlayer.acceleration.x;
-                    shipPlayer.speed.y += shipPlayer.acceleration.y;
+                    if (shipPlayer.speed.x + shipPlayer.acceleration.x > maxSpeed) {
+                        shipPlayer.speed.x = maxSpeed;
+                    } else {
+                        shipPlayer.speed.x += shipPlayer.acceleration.x;
+                    }
+                    
+                    if (shipPlayer.speed.y + shipPlayer.acceleration.y > maxSpeed) {
+                        shipPlayer.speed.y = maxSpeed;
+                    } else {
+                        shipPlayer.speed.y += shipPlayer.acceleration.y;
+                    }
 
                 } else {
                     shipPlayer.speed.x *= deceleration;
