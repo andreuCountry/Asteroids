@@ -78,6 +78,10 @@ struct Ship {
     esat::Vec3* points;
     int lifes;
     bool isAlive;
+    esat::Vec3 centralPoint;
+    esat::Vec2 speed = {0.0f, 0.0f};
+    esat::Vec2 acceleration;
+    float angle = 0.0f;
 };
 
 User user, userLooked;
@@ -85,6 +89,11 @@ User* usersToShow = nullptr;
 User* usersOrdered = nullptr;
 
 Ship shipPlayer;
+
+const float acceleration = 1.005f;
+const float deceleration = 0.995;
+const float maxSpeed = 15.0f;
+const float minimumSpeed = 0.0f;
 
 int lastIdInserted = 0, countUsersNotDeleted = 0, currentPage = 0, usersOrderedCount = 0;
 
@@ -103,6 +112,7 @@ void InitShip() {
     *(points+3) = {cosf(DegreeToRadians(-170.0f)) * 10, sinf(DegreeToRadians(-170.0f)) * 10, 1.0f};
     *(points+4) = {cosf(DegreeToRadians(-160.0f)) * 15, sinf(DegreeToRadians(-160.0f)) * 15, 1.0f};
 
+    shipPlayer.centralPoint = {windowX / 2, windowY / 2, 1.0f};
     shipPlayer.points = points;
 }
 
@@ -905,6 +915,12 @@ void HandleLogin() {
     }
 }
 
+void HandleShipMovement() {
+    if (esat::IsKeyDown('D')) {
+        // move ship into right
+    }
+}
+
 void HandleHighscoresSection() {
     if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
         currentGame.actualScene = ASK_REGISTER;
@@ -1228,6 +1244,7 @@ void DrawAdminSection() {
     esat::DrawText(windowX / 1.3f, windowY - 50, "L (LAST PAGE)");
 
     esat::DrawText(windowX - 150, windowY / 7, "PLAY (P)");
+
 }
 
 void DrawEditSection() {
@@ -1265,17 +1282,16 @@ void DrawEditSection() {
 
 void DrawGameplay() {
 
-    esat::DrawSetFillColor(255, 255, 255, 255);
-
+    // Some issues with draw ship or gameplay
 }
 
 esat::Mat3 UpdateFigurita(esat::Vec2 scale, float angle, esat::Vec2 whereMove) {
-    
+
     esat::Mat3 m = esat::Mat3Identity();
     m = esat::Mat3Multiply(esat::Mat3Translate(0.0f, 0.0f), m);
     m = esat::Mat3Multiply(esat::Mat3Scale(scale.x, scale.y), m);
-    m = esat::Mat3Multiply(esat::Mat3Translate(whereMove.x, whereMove.y), m);
     m = esat::Mat3Multiply(esat::Mat3Rotate(angle), m);
+    m = esat::Mat3Multiply(esat::Mat3Translate(whereMove.x, whereMove.y), m);
 
     return m;
 }
@@ -1283,14 +1299,8 @@ esat::Mat3 UpdateFigurita(esat::Vec2 scale, float angle, esat::Vec2 whereMove) {
 void DrawFigurita(esat::Mat3 m, int numberOfFigures) {
 
     float points[numPoints * 2];
-
-    m = esat::Mat3Multiply(
-        esat::Mat3Translate(
-            esat::MousePositionX(), 
-            esat::MousePositionY()
-        ), 
-        m
-    );
+    esat::DrawSetFillColor(0, 0, 0, 0);
+    esat::DrawSetStrokeColor(255, 255, 255, 255);
 
     for (int i = 0; i < numPoints; i++) {
         // Necesitamos esto para transformar los Mat3 en Vec3, para dibujar
@@ -1298,7 +1308,7 @@ void DrawFigurita(esat::Mat3 m, int numberOfFigures) {
         points[i*2] = tmp.x;
         points[i*2+1] = tmp.y;
     }
-    esat::DrawSolidPath(points, numPoints);
+    esat::DrawSolidPath(points, numPoints, true);
 }
 
 int esat::main(int argc, char **argv) {
@@ -1352,9 +1362,39 @@ int esat::main(int argc, char **argv) {
                 HandleTextInputDynamic();
             break;
             case Scenes::GAMEPLAY:
+ 
+                HandleShipMovement();
+
+                // all this shit is going into handle hell function
+                // think about + and - acceleration
+                if (esat::IsKeyPressed('D')) {
+                    shipPlayer.angle += 0.05f;
+                }
+
+                if (esat::IsKeyPressed('A')) {
+                    shipPlayer.angle -= 0.05f;
+                }
+
+                if (esat::IsKeyPressed('W')) {
+                    shipPlayer.acceleration = {
+                        cosf(shipPlayer.angle) * 0.2f,
+                        sinf(shipPlayer.angle) * 0.2f
+                    };
+
+                    shipPlayer.speed.x += shipPlayer.acceleration.x;
+                    shipPlayer.speed.y += shipPlayer.acceleration.y;
+
+                } else {
+                    shipPlayer.speed.x *= deceleration;
+                    shipPlayer.speed.y *= deceleration;
+                }
+
+                shipPlayer.centralPoint.x += shipPlayer.speed.x;
+                shipPlayer.centralPoint.y += shipPlayer.speed.y;
+                
+                matriz = UpdateFigurita({1.0f, 1.0f}, shipPlayer.angle, {shipPlayer.centralPoint.x, shipPlayer.centralPoint.y});
 
                 DrawGameplay();
-
                 DrawFigurita(matriz, numPoints);
             break;
         }
