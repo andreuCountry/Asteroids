@@ -100,6 +100,64 @@ int lastIdInserted = 0, countUsersNotDeleted = 0, currentPage = 0, usersOrderedC
 // si esto es true, podemos pasar de pagina en la sección de admin
 bool canPassPage = false;
 
+// Asteroids vertexs
+void VertsAsteroidA(esat::Vec3 *vertices) {
+  *(vertices)     = { 0.00f,   0.40f,  1.0f};
+  *(vertices + 1) = {-0.20f,   0.60f,  1.0f};
+  *(vertices + 2) = {-0.49f,   0.30f,  1.0f};
+  *(vertices + 3) = { 0.20f,  -0.60f,  1.0f};
+  *(vertices + 4) = {-0.49f,  -0.29f,  1.0f};
+  *(vertices + 5) = {-0.20f,  -0.60f,  1.0f};
+  *(vertices + 6) = {-0.49f,  -0.30f,  1.0f};
+  *(vertices + 7) = { 0.29f,  -0.04f,  1.0f};
+  *(vertices + 8) = { 0.49f,   0.30f,  1.0f};
+  *(vertices + 9) = { 0.20f,   0.60f,  1.0f};
+}
+
+void VertsAsteroidB(esat::Vec3 *vertices) {
+  *(vertices)      =  {-0.11f,   0.24f,  1.0f};
+  *(vertices + 1)  =  {-0.20f,   0.44f,  1.0f};
+  *(vertices + 2)  =  { 0.20f,   0.44f,  1.0f};
+  *(vertices + 3)  =  { 0.40f,   0.13f,  1.0f};
+  *(vertices + 4)  =  { 0.10f,  -0.07f,  1.0f};
+  *(vertices + 5)  =  {-0.40f,  -0.36f,  1.0f};
+  *(vertices + 6)  =  { 0.20f,   0.00f,  1.0f};
+  *(vertices + 7)  =  { 0.10f,  -0.45f,  1.0f};
+  *(vertices + 8)  =  { 0.49f,   0.30f,  1.0f};
+  *(vertices + 9)  =  {-0.07f,  -0.55f,  1.0f};
+  *(vertices + 10) =  {-0.40f,  -0.16f,  1.0f};
+  *(vertices + 11) =  {-0.40f,   0.24f,  1.0f};
+}
+
+void VertsAsteroidC(esat::Vec3 *vertices) {
+  *(vertices)      =  {-0.15f,   0.49f,  1.0f};
+  *(vertices + 1)  =  { 0.00f,   0.40f,  1.0f};
+  *(vertices + 2)  =  { 0.19f,   0.48f,  1.0f};
+  *(vertices + 3)  =  { 0.41f,   0.36f,  1.0f};
+  *(vertices + 4)  =  { 0.30f,   0.11f,  1.0f};
+  *(vertices + 5)  =  { 0.45f,  -0.12f,  1.0f};
+  *(vertices + 6)  =  { 0.19f,  -0.51f,  1.0f};
+  *(vertices + 7)  =  {-0.05f,  -0.44f,  1.0f};
+  *(vertices + 8)  =  {-0.20f,  -0.51f,  1.0f};
+  *(vertices + 9)  =  {-0.46f,  -0.13f,  1.0f};
+  *(vertices + 10) =  {-0.34f,   0.08f,  1.0f};
+  *(vertices + 11) =  {-0.46f,   0.36f,  1.0f};
+}
+
+void VertsAsteroidD(esat::Vec3 *vertices) {
+  *(vertices)      =  {-0.34f,   0.70f,  1.0f};
+  *(vertices + 1)  =  { 0.25f,   0.69f,  1.0f};
+  *(vertices + 2)  =  { 0.67f,   0.09f,  1.0f};
+  *(vertices + 3)  =  { 0.67f,  -0.12f,  1.0f};
+  *(vertices + 4)  =  { 0.26f,  -0.71f,  1.0f};
+  *(vertices + 5)  =  { 0.00f,  -0.71f,  1.0f};
+  *(vertices + 6)  =  { 0.00f,  -0.31f,  1.0f};
+  *(vertices + 7)  =  {-0.24f,  -0.71f,  1.0f};
+  *(vertices + 8)  =  {-0.63f,  -0.13f,  1.0f};
+  *(vertices + 9)  =  {-0.51f,   0.00f,  1.0f};
+  *(vertices + 10) =  {-0.64f,   0.10f,  1.0f};
+}
+
 float DegreeToRadians(float degree) {
     return degree * pi / 180.0f;
 }
