@@ -76,7 +76,7 @@ struct User {
 
 struct Ship {
     esat::Vec3* points;
-    int lifes;
+    int lifes = 3;
     bool isAlive;
     esat::Vec3 centralPoint;
     esat::Vec2 speed = {0.0f, 0.0f};
@@ -99,6 +99,19 @@ int lastIdInserted = 0, countUsersNotDeleted = 0, currentPage = 0, usersOrderedC
 
 // si esto es true, podemos pasar de pagina en la sección de admin
 bool canPassPage = false;
+
+enum AsteroidsLevel {
+    LEVEL_1,
+    LEVEL_2,
+    LEVEL_3,
+    LEVEL_4
+};
+
+struct Asteroids {
+    AsteroidsLevel level;
+    esat::Vec3 *vertices;
+    esat::Vec2 speed;
+};
 
 // Asteroids vertexs
 void VertsAsteroidA(esat::Vec3 *vertices) {
