@@ -107,14 +107,28 @@ enum AsteroidsLevel {
     LEVEL_4
 };
 
-struct Asteroids {
-    AsteroidsLevel level;
-    esat::Vec3 *vertices;
-    esat::Vec2 speed;
+enum AsteroidsType {
+    V1,
+    V2,
+    V3,
+    V4
 };
 
+struct Asteroids {
+    AsteroidsLevel level;
+    AsteroidsType type;
+    esat::Vec3 *vertices;
+    esat::Vec2 speed;
+    esat::Vec3 centralPoint;
+};
+
+int actualLevel, totalAsteroidsPerLevels;
+int asteroidsV1Count = 0, asteroidsV2Count = 0, asteroidsV3Count = 0, asteroidsV4Count = 0;
+
+Asteroids* asteroids = nullptr;
+
 // Asteroids vertexs
-void VertsAsteroidA(esat::Vec3 *vertices) {
+void VertsAsteroid1(esat::Vec3 *vertices) {
   *(vertices)     = { 0.00f,   0.40f,  1.0f};
   *(vertices + 1) = {-0.20f,   0.60f,  1.0f};
   *(vertices + 2) = {-0.49f,   0.30f,  1.0f};
@@ -127,7 +141,7 @@ void VertsAsteroidA(esat::Vec3 *vertices) {
   *(vertices + 9) = { 0.20f,   0.60f,  1.0f};
 }
 
-void VertsAsteroidB(esat::Vec3 *vertices) {
+void VertsAsteroid2(esat::Vec3 *vertices) {
   *(vertices)      =  {-0.11f,   0.24f,  1.0f};
   *(vertices + 1)  =  {-0.20f,   0.44f,  1.0f};
   *(vertices + 2)  =  { 0.20f,   0.44f,  1.0f};
@@ -142,7 +156,7 @@ void VertsAsteroidB(esat::Vec3 *vertices) {
   *(vertices + 11) =  {-0.40f,   0.24f,  1.0f};
 }
 
-void VertsAsteroidC(esat::Vec3 *vertices) {
+void VertsAsteroid3(esat::Vec3 *vertices) {
   *(vertices)      =  {-0.15f,   0.49f,  1.0f};
   *(vertices + 1)  =  { 0.00f,   0.40f,  1.0f};
   *(vertices + 2)  =  { 0.19f,   0.48f,  1.0f};
@@ -157,7 +171,7 @@ void VertsAsteroidC(esat::Vec3 *vertices) {
   *(vertices + 11) =  {-0.46f,   0.36f,  1.0f};
 }
 
-void VertsAsteroidD(esat::Vec3 *vertices) {
+void VertsAsteroid4(esat::Vec3 *vertices) {
   *(vertices)      =  {-0.34f,   0.70f,  1.0f};
   *(vertices + 1)  =  { 0.25f,   0.69f,  1.0f};
   *(vertices + 2)  =  { 0.67f,   0.09f,  1.0f};
@@ -280,6 +294,10 @@ void LoadUsersLogin() {
     fclose(file);
 }
 
+void GenerateSemilla() {
+    srand(time(NULL));
+}
+
 void LoadUsersOrdered() {
     file = fopen("users.dat", "r+b");
     if (file == NULL) {
@@ -358,6 +376,155 @@ void LoadUsersOrdered() {
     usersOrderedCount = count;
 }
 
+void CalculateAsteroidsPerLevel(int level) {
+    int selectedAsteroidsPerLevel = 0;
+    int indexAsteroid = 0;
+    int nextIndex = 0;
+
+    for(int i = 0; selectedAsteroidsPerLevel < totalAsteroidsPerLevels; i++) {
+        if (i == 0) {
+            asteroidsV1Count += rand()%3;
+
+            if ((selectedAsteroidsPerLevel + asteroidsV1Count) < totalAsteroidsPerLevels) {
+                selectedAsteroidsPerLevel += asteroidsV1Count;
+            } else {
+                asteroidsV1Count = totalAsteroidsPerLevels - selectedAsteroidsPerLevel;
+                selectedAsteroidsPerLevel += asteroidsV1Count;
+            }
+
+            nextIndex = selectedAsteroidsPerLevel;
+
+            for(indexAsteroid; indexAsteroid < nextIndex; indexAsteroid++) {
+                (*(asteroids + indexAsteroid)).type = AsteroidsType::V1;
+            }
+
+        } else if (i == 1) {
+            asteroidsV2Count += rand()%3;
+
+            if ((selectedAsteroidsPerLevel + asteroidsV2Count) < totalAsteroidsPerLevels) {
+                selectedAsteroidsPerLevel += asteroidsV2Count;
+            } else {
+                asteroidsV2Count = totalAsteroidsPerLevels - selectedAsteroidsPerLevel;
+                selectedAsteroidsPerLevel += asteroidsV2Count;
+            }
+
+            nextIndex = selectedAsteroidsPerLevel;
+
+            for(indexAsteroid; indexAsteroid < nextIndex; indexAsteroid++) {
+                (*(asteroids + indexAsteroid)).type = AsteroidsType::V2;
+            }
+
+        } else if (i == 2) {
+            asteroidsV3Count += rand()%3;
+
+            if ((selectedAsteroidsPerLevel + asteroidsV3Count) < totalAsteroidsPerLevels) {
+                selectedAsteroidsPerLevel += asteroidsV3Count;
+            } else {
+                asteroidsV3Count = totalAsteroidsPerLevels - selectedAsteroidsPerLevel;
+                selectedAsteroidsPerLevel += asteroidsV3Count;
+            }
+
+            nextIndex = selectedAsteroidsPerLevel;
+
+            for(indexAsteroid; indexAsteroid < nextIndex; indexAsteroid++) {
+                (*(asteroids + indexAsteroid)).type = AsteroidsType::V3;
+            }
+        } else if (i == 3) {
+            i = 0;
+            asteroidsV4Count += rand()%3;
+
+            if ((selectedAsteroidsPerLevel + asteroidsV4Count) < totalAsteroidsPerLevels) {
+                selectedAsteroidsPerLevel += asteroidsV4Count;
+            } else {
+                asteroidsV4Count = totalAsteroidsPerLevels - selectedAsteroidsPerLevel;
+                selectedAsteroidsPerLevel += asteroidsV4Count;
+            }
+
+            nextIndex = selectedAsteroidsPerLevel;
+
+            for(indexAsteroid; indexAsteroid < nextIndex; indexAsteroid++) {
+                (*(asteroids + indexAsteroid)).type = AsteroidsType::V4;
+            }
+        }
+    }
+
+    // printeo del tipo de asteroids
+    for (int i = 0; i < totalAsteroidsPerLevels; i++) {
+
+        printf("Asteroid [%d] -> ", i);
+
+        switch (asteroids[i].type) {
+            case AsteroidsType::V1:
+                printf("V1\n");
+            break;
+
+            case AsteroidsType::V2:
+                printf("V2\n");
+            break;
+
+            case AsteroidsType::V3:
+                printf("V3\n");
+            break;
+
+            case AsteroidsType::V4:
+                printf("V4\n");
+            break;
+
+            default:
+                printf("UNKNOWN\n");
+            break;
+        }
+    }
+}
+
+void ResetConfig() {
+    asteroidsV1Count = 0;
+    asteroidsV2Count = 0;
+    asteroidsV3Count = 0;
+    asteroidsV4Count = 0;
+
+    free(asteroids);
+    asteroids = nullptr;
+}
+
+void LevelConfig(int level) {
+    //Resetear contadores de asteroids
+    ResetConfig();
+
+    switch (level) {
+        case 1:
+            totalAsteroidsPerLevels = 4;
+        break;
+        case 2:
+            totalAsteroidsPerLevels = 5;
+        break;
+        case 3:
+            totalAsteroidsPerLevels = 6;
+        break;
+        case 4:
+            totalAsteroidsPerLevels = 7;
+        break;
+        case 5:
+            totalAsteroidsPerLevels = 8;
+        break;
+    }
+
+    asteroids = (Asteroids*) malloc(sizeof(asteroids) * totalAsteroidsPerLevels);
+
+    CalculateAsteroidsPerLevel(level);
+}
+
+// Control de nivel del juego
+void IncreaseLevel() {
+    if (actualLevel < 5) {
+        actualLevel++;
+    } else {
+        actualLevel = 5;
+    }
+
+    LevelConfig(actualLevel);
+}
+
 void InitConfig() {
 
     esat::DrawSetTextFont("./Recursos/Fuentes/horrendo.ttf");
@@ -380,6 +547,9 @@ void InitConfig() {
     *(password+0) = '\0'; 
 
     LoadUsers();
+
+    actualLevel = 1;
+    LevelConfig(actualLevel);
     // Resetear el buffer del teclado
     esat::ResetBufferdKeyInput();
 }
@@ -1382,11 +1552,47 @@ void DrawFigurita(esat::Mat3 m, int numberOfFigures) {
     esat::DrawSolidPath(points, numPoints, true);
 }
 
+void DrawAsteroidsVers1() {
+    
+}
+
+void DrawAsteroidsVers2() {
+    
+}
+
+void DrawAsteroidsVers3() {
+    
+}
+
+void DrawAsteroidsVers4() {
+    
+}
+
+void DrawAsteroids() {
+    for (int i = 0; i < totalAsteroidsPerLevels; i++) {
+        switch(asteroids[i].type) {
+            case AsteroidsType::V1:
+
+            break;
+            case AsteroidsType::V2:
+
+            break;
+            case AsteroidsType::V3:
+
+            break;
+            case AsteroidsType::V4:
+
+            break;
+        }
+    }
+}
+
 int esat::main(int argc, char **argv) {
 
     esat::WindowInit(windowX, windowY);
     esat::WindowSetMouseVisibility(true);
 
+    GenerateSemilla();
     InitConfig();
     InitShip();
 
@@ -1398,6 +1604,10 @@ int esat::main(int argc, char **argv) {
         esat::DrawBegin();
         esat::DrawClear(0, 0, 0);
 
+        // Debug Level, gg FEDE, too easy
+        if (esat::IsKeyDown('I')) {
+            IncreaseLevel();
+        }
 
         // Draw scenes up
         switch (currentGame.actualScene) {
