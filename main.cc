@@ -38,6 +38,18 @@ int userLoginLength = 0, userLoginMaxLength = 15;
 char* passwordLogin = (char*) malloc (1);
 int passwordLoginLength = 0, passwordLoginMaxLength = 15;
 
+char* birthday = (char*) malloc (1);
+int birthdayLength = 0, birthdayMaxLength = 11;
+
+char* province = (char*) malloc (1);
+int provinceLength = 0, provinceMaxLength = 15;
+
+char* email = (char*) malloc (1);
+int emailLength = 0, emailMaxLength = 15;
+
+int credits = 0;
+int creditsMax = 999999;
+
 char* nicknameEdit = (char*) malloc (1);
 int nicknameEditLength = 0;
 
@@ -46,6 +58,18 @@ int userPlayerEditLength = 0, userPlayerEditMaxLength = 15;
 
 char* passwordEdit = (char*) malloc (1);
 int passwordEditLength = 0, passwordEditMaxLength = 15;
+
+char* birthdayEdit = (char*) malloc (1);
+int birthdayEditLength = 0, birthdayEditMaxLength = 10;
+
+char* provinceEdit = (char*) malloc (1);
+int provinceEditLength = 0, provinceEditMaxLength = 15;
+
+char* emailEdit = (char*) malloc (1);
+int emailEditLength = 0, emailEditMaxLength = 15;
+
+int creditsEdit = 0;
+int creditsMaxEdit = 999999;
 
 int currentField = 0, currentLoginField = 0, currentEditField = 0;
 int userId = 0;
@@ -58,6 +82,9 @@ struct User {
     char* nickname;
     char* userPlayer;
     char* password;
+    char* birthday;
+    char* province;
+    char* email;
     bool isAdmin = false;
     int credits;
     bool isDeleted = false;
@@ -69,10 +96,14 @@ struct User {
 #define OFFSET_NICK      4
 #define OFFSET_USER      7
 #define OFFSET_PASS      21
-#define OFFSET_ADMIN     35
-#define OFFSET_CREDITS   36
-#define OFFSET_DELETED   40
-#define OFFSET_PUNTUA    41
+#define OFFSET_BIRTHDAY  35
+#define OFFSET_PROVINCE  45
+#define OFFSET_EMAIL     59
+
+#define OFFSET_ADMIN     73
+#define OFFSET_CREDITS   74
+#define OFFSET_DELETED   78
+#define OFFSET_PUNTUA    79
 
 struct Ship {
     esat::Vec3* points;
@@ -221,7 +252,7 @@ void LoadUsers() {
         }
 
         // saltar la parte restante del user que no me interesa
-        fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int), SEEK_CUR);
+        fseek(file, 3 + 14 + 14 + 10 + 14 + 14 + sizeof(bool) + sizeof(int), SEEK_CUR);
 
         fread(&isDeleted, sizeof(isDeleted), 1, file);
         if (!isDeleted) {
@@ -244,7 +275,7 @@ void LoadUsersLogin() {
         return;
     }
 
-    usersToShow = (User*) malloc(countUsersNotDeleted * 45);
+    usersToShow = (User*) malloc(countUsersNotDeleted * 83);
     if (usersToShow == NULL) {
         printf("No hay memoria\n");
         fclose(file);
@@ -254,6 +285,9 @@ void LoadUsersLogin() {
     char* tmpNick = (char*) malloc(4);
     char* tmpUser = (char*) malloc(15);
     char* tmpPass = (char*) malloc(15);
+    char* tmpBirth = (char*) malloc(11);
+    char* tmpProvince = (char*) malloc(15);
+    char* tmpEmail = (char*) malloc(15);
 
     bool admin;
     int credits;
@@ -267,6 +301,9 @@ void LoadUsersLogin() {
         fread(tmpNick, 3, 1, file); tmpNick[3] = '\0';
         fread(tmpUser, 14, 1, file); tmpUser[14] = '\0';
         fread(tmpPass, 14, 1, file); tmpPass[14] = '\0';
+        fread(tmpBirth, 10, 1, file); tmpBirth[10] = '\0';
+        fread(tmpProvince, 14, 1, file); tmpProvince[14] = '\0';
+        fread(tmpEmail, 14, 1, file); tmpEmail[14] = '\0';
         fread(&admin, sizeof(admin), 1, file);
         fread(&credits, sizeof(credits), 1, file);
         fread(&isDeleted, sizeof(isDeleted), 1, file);
@@ -275,12 +312,15 @@ void LoadUsersLogin() {
         if (!isDeleted) {
 
             // fumada histórica, para copiar en bloques de memoria, memcpy, parecido al strcpy
-            unsigned char* ptr = ((unsigned char*)usersToShow) + index * 45;
+            unsigned char* ptr = ((unsigned char*)usersToShow) + index * 83;
 
             memcpy(ptr + OFFSET_ID, &id, 4);
             memcpy(ptr + OFFSET_NICK, tmpNick, 3);
             memcpy(ptr + OFFSET_USER, tmpUser, 14);
             memcpy(ptr + OFFSET_PASS, tmpPass, 14);
+            memcpy(ptr + OFFSET_BIRTHDAY, tmpBirth, 10);
+            memcpy(ptr + OFFSET_PROVINCE, tmpProvince, 14);
+            memcpy(ptr + OFFSET_EMAIL, tmpEmail, 14);
             memcpy(ptr + OFFSET_ADMIN, &admin, 1);
             memcpy(ptr + OFFSET_CREDITS, &credits, 4);
             memcpy(ptr + OFFSET_DELETED, &isDeleted, 1);
@@ -305,7 +345,7 @@ void LoadUsersOrdered() {
         return;
     }
 
-    usersOrdered = (User*) malloc(10 * 45);
+    usersOrdered = (User*) malloc(10 * 83);
     if (usersOrdered == NULL) {
         printf("No hay memoria ni jugadores para asociar puntuacion \n");
         fclose(file);
@@ -315,6 +355,9 @@ void LoadUsersOrdered() {
     char* tmpNick = (char*) malloc(4);
     char* tmpUser = (char*) malloc(15);
     char* tmpPass = (char*) malloc(15);
+    char* tmpBirth = (char*) malloc(11);
+    char* tmpProvince = (char*) malloc(15);
+    char* tmpEmail = (char*) malloc(15);
 
     bool admin;
     int credits;
@@ -328,6 +371,9 @@ void LoadUsersOrdered() {
         fread(tmpNick, 3, 1, file); tmpNick[3] = '\0';
         fread(tmpUser, 14, 1, file); tmpUser[14] = '\0';
         fread(tmpPass, 14, 1, file); tmpPass[14] = '\0';
+        fread(tmpBirth, 10, 1, file); tmpBirth[10] = '\0';
+        fread(tmpProvince, 14, 1, file); tmpProvince[14] = '\0';
+        fread(tmpEmail, 14, 1, file); tmpEmail[14] = '\0';
         fread(&admin, sizeof(admin), 1, file);
         fread(&credits, sizeof(credits), 1, file);
         fread(&isDeleted, sizeof(isDeleted), 1, file);
@@ -337,7 +383,7 @@ void LoadUsersOrdered() {
 
         int pos = 0;
         for (; pos < count; pos++) {
-            unsigned char* current = ((unsigned char*)usersOrdered) + pos * 45;
+            unsigned char* current = ((unsigned char*)usersOrdered) + pos * 83;
 
             int currentScore;
             memcpy(&currentScore, current + OFFSET_PUNTUA, 4);
@@ -350,18 +396,21 @@ void LoadUsersOrdered() {
         if (pos < 10) {
 
             for (int j = (count < 10 ? count : 9); j > pos; j--) {
-                unsigned char* destiny = ((unsigned char*)usersOrdered) + j * 45;
-                unsigned char* source = ((unsigned char*)usersOrdered) + (j - 1) * 45;
+                unsigned char* destiny = ((unsigned char*)usersOrdered) + j * 83;
+                unsigned char* source = ((unsigned char*)usersOrdered) + (j - 1) * 83;
 
-                memcpy(destiny, source, 45);
+                memcpy(destiny, source, 83);
             }
 
-            unsigned char* ptr = ((unsigned char*)usersOrdered) + pos * 45;
+            unsigned char* ptr = ((unsigned char*)usersOrdered) + pos * 83;
 
             memcpy(ptr + OFFSET_ID, &id, 4);
             memcpy(ptr + OFFSET_NICK, tmpNick, 3);
             memcpy(ptr + OFFSET_USER, tmpUser, 14);
             memcpy(ptr + OFFSET_PASS, tmpPass, 14);
+            memcpy(ptr + OFFSET_BIRTHDAY, tmpBirth, 10);
+            memcpy(ptr + OFFSET_PROVINCE, tmpProvince, 14);
+            memcpy(ptr + OFFSET_EMAIL, tmpEmail, 14);
             memcpy(ptr + OFFSET_ADMIN, &admin, 1);
             memcpy(ptr + OFFSET_CREDITS, &credits, 4);
             memcpy(ptr + OFFSET_DELETED, &isDeleted, 1);
@@ -509,7 +558,7 @@ void LevelConfig(int level) {
         break;
     }
 
-    asteroids = (Asteroids*) malloc(sizeof(asteroids) * totalAsteroidsPerLevels);
+    asteroids = (Asteroids*) malloc(sizeof(Asteroids) * totalAsteroidsPerLevels);
 
     CalculateAsteroidsPerLevel(level);
 }
@@ -550,8 +599,6 @@ void InitConfig() {
 
     actualLevel = 1;
     LevelConfig(actualLevel);
-    // Resetear el buffer del teclado
-    esat::ResetBufferdKeyInput();
 }
 
 void ShowPlayersAdminSection() {
@@ -581,7 +628,7 @@ void ShowPlayersAdminSection() {
     }
 
     for (int i = startIndex; i < endIndex; i++) {
-        char* u = ((char*)usersToShow) + i * 45;
+        char* u = ((char*)usersToShow) + i * 83;
 
         memcpy(tmpNick, u + OFFSET_NICK, 3);
         tmpNick[3] = '\0';
@@ -614,6 +661,9 @@ void ShowOrderedPlayersScore() {
     char* tmpNick = (char*) malloc(4);
     char* tmpUser = (char*) malloc(15);
     char* tmpPass = (char*) malloc(15);
+    char* tmpBirth = (char*) malloc(11);
+    char* tmpProvince = (char*) malloc(15);
+    char* tmpEmail = (char*) malloc(15);
 
     bool admin;
     int credits;
@@ -627,7 +677,7 @@ void ShowOrderedPlayersScore() {
     // validación pocha pero nos aseguramos de que no se inserte basura en memoria
     // además solo trabajamos con los usuarios que tenemos, con máximo de 10
     for (int i = 0; i < usersOrderedCount; i++) {
-        char* u = ((char*)usersOrdered) + i * 45;
+        char* u = ((char*)usersOrdered) + i * 83;
 
         memcpy(tmpNick, u + OFFSET_NICK, 3);
         tmpNick[3] = '\0';
@@ -637,6 +687,15 @@ void ShowOrderedPlayersScore() {
 
         memcpy(tmpPass, u + OFFSET_PASS, 14);
         tmpPass[14] = '\0';
+
+        memcpy(tmpBirth, u + OFFSET_BIRTHDAY, 10);
+        tmpBirth[10] = '\0';
+
+        memcpy(tmpProvince, u + OFFSET_PROVINCE, 14);
+        tmpProvince[14] = '\0';
+
+        memcpy(tmpEmail, u + OFFSET_EMAIL, 14);
+        tmpEmail[14] = '\0';
 
         memcpy(&admin, u + OFFSET_ADMIN, 1);
         memcpy(&credits, u + OFFSET_CREDITS, 4);
@@ -738,15 +797,25 @@ void ControlsDetect() {
             DrawStickBar();
 
             if (esat::IsSpecialKeyDown(esat::kSpecialKey_Tab)) {
-                if (stickPosition.y == windowY / 2) {
-                    stickPosition.y = windowY / 1.3f;
-                } else if ( stickPosition.y == windowY / 1.3f) {
+                if (stickPosition.y == windowY / 4) {
+                    stickPosition.y = windowY / 3.2f;
+                } else if (stickPosition.y == windowY / 3.2f) {
+                    stickPosition.y = windowY / 2.6f;
+                } else if (stickPosition.y == windowY / 2.6f) {
+                    stickPosition.y = windowY / 2.2f;
+                } else if (stickPosition.y == windowY / 2.2f) {
+                    stickPosition.y = windowY / 1.9f;
+                } else if (stickPosition.y == windowY / 1.9f) {
+                    stickPosition.y = windowY / 1.7f;
+                } else if (stickPosition.y == windowY / 1.7f) {
+                    stickPosition.y = windowY / 1.5f;
+                } else if (stickPosition.y == windowY - 50) {
                     stickPosition.y = windowY / 4;
                 } else {
-                    stickPosition.y += windowY / 8;
+                    stickPosition.y = windowY - 50;
                 }
 
-                currentEditField = (currentEditField + 1) % 4;
+                currentEditField = (currentEditField + 1) % 8;
             }
         break;
         case Scenes::LOAD_REGISTER:
@@ -768,15 +837,25 @@ void ControlsDetect() {
             DrawStickBar();
 
             if (esat::IsSpecialKeyDown(esat::kSpecialKey_Tab)) {
-                if (stickPosition.y == windowY / 2) {
-                    stickPosition.y = windowY / 1.3f;
-                } else if ( stickPosition.y == windowY / 1.3f) {
+                if (stickPosition.y == windowY / 4) {
+                    stickPosition.y = windowY / 3.2f;
+                } else if (stickPosition.y == windowY / 3.2f) {
+                    stickPosition.y = windowY / 2.6f;
+                } else if (stickPosition.y == windowY / 2.6f) {
+                    stickPosition.y = windowY / 2.2f;
+                } else if (stickPosition.y == windowY / 2.2f) {
+                    stickPosition.y = windowY / 1.9f;
+                } else if (stickPosition.y == windowY / 1.9f) {
+                    stickPosition.y = windowY / 1.7f;
+                } else if (stickPosition.y == windowY / 1.7f) {
+                    stickPosition.y = windowY / 1.5f;
+                } else if (stickPosition.y == windowY - 50) {
                     stickPosition.y = windowY / 4;
                 } else {
-                    stickPosition.y += windowY / 8;
+                    stickPosition.y = windowY - 50;
                 }
 
-                currentField = (currentField + 1) % 4;
+                currentField = (currentField + 1) % 8;
             }
 
         break;
@@ -842,7 +921,10 @@ void SaveUser() {
     user.nickname = nickname;
     user.userPlayer = userPlayer;
     user.password = password;
-    user.credits = 10;
+    user.birthday = birthday;
+    user.province = province;
+    user.email = email;
+    user.credits = credits;
     lastIdInserted++;
     user.id = lastIdInserted;
     user.isDeleted = false;
@@ -861,14 +943,17 @@ void SaveUser() {
         user.isAdmin = false;
     }
 
-    fwrite(&user.id, sizeof(user.id), 1, file);
+    fwrite(&user.id, sizeof(int), 1, file);
     fwrite(user.nickname, 3, 1, file);
     fwrite(user.userPlayer, 14, 1, file);
     fwrite(user.password, 14, 1, file);
-    fwrite(&user.isAdmin, sizeof(user.isAdmin), 1, file);
-    fwrite(&user.credits, sizeof(user.credits), 1, file);
-    fwrite(&user.isDeleted, sizeof(user.isDeleted), 1, file);
-    fwrite(&user.puntuation, sizeof(user.puntuation), 1, file);
+    fwrite(user.birthday, 10, 1, file);
+    fwrite(user.province, 14, 1, file);
+    fwrite(user.email, 14, 1, file);
+    fwrite(&user.isAdmin, 1, 1, file);
+    fwrite(&user.credits, sizeof(int), 1, file);
+    fwrite(&user.isDeleted, 1, 1, file);
+    fwrite(&user.puntuation, sizeof(int), 1, file);
 
     fclose(file);
 }
@@ -893,6 +978,9 @@ bool CheckOptionalUser() {
     char* tmpNick = (char*) malloc(4);
     char* tmpUser = (char*) malloc(15);
     char* tmpPass = (char*) malloc(15);
+    char* tmpBirth = (char*) malloc(10);
+    char* tmpProvince = (char*) malloc(15);
+    char* tmpEmail = (char*) malloc(15);
 
     bool admin;
     int credits;
@@ -905,13 +993,26 @@ bool CheckOptionalUser() {
         fread(tmpNick, 3, 1, f); tmpNick[3] = '\0';
         fread(tmpUser, 14, 1, f); tmpUser[14] = '\0';
         fread(tmpPass, 14, 1, f); tmpPass[14] = '\0';
+        fread(tmpBirth, 10, 1, f); tmpBirth[10] = '\0';
+        fread(tmpProvince, 14, 1, f); tmpProvince[14] = '\0';
+        fread(tmpEmail, 14, 1, f); tmpEmail[14] = '\0';
         fread(&admin, sizeof(admin), 1, f);
         fread(&credits, sizeof(credits), 1, f);
         fread(&isDeleted, sizeof(isDeleted), 1, f);
         fread(&puntuation, sizeof(puntuation), 1, f);
 
         // Necesario para la salud mental
-        printf(" id=%d, nickname='%s', userPlayer='%s', password='%s', isAdmin=%d, credits=%d isDeleted=%d puntuation=%d \n",  id, tmpNick, tmpUser, tmpPass, admin, credits, isDeleted, puntuation);
+        printf("id=%d", id);
+        printf(" nickname='%s'", tmpNick);
+        printf(" userPlayer='%s'", tmpUser);
+        printf(" password='%s'", tmpPass);
+        printf(" birthday='%s'", tmpBirth);
+        printf(" province='%s'", tmpProvince);
+        printf(" email='%s'", tmpEmail);
+        printf(" isAdmin=%d", admin);
+        printf(" credits=%d", credits);
+        printf(" isDeleted=%d", isDeleted);
+        printf(" puntuation=%d \n", puntuation);
 
         if ((strcmp(tmpUser, userLogin) == 0) && (strcmp(tmpPass, passwordLogin) == 0)) {
             isValid = true;
@@ -939,14 +1040,14 @@ void MarkUserAsDeleted(int id) {
         if (id == idToDelete) {
             bool deleted = true;
 
-            fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int), SEEK_CUR);
+            fseek(file, 3 + 14 + 14 + 10 + 14 + 14 + sizeof(bool) + sizeof(int), SEEK_CUR);
 
             fwrite(&deleted, sizeof(bool), 1, file);
             break;
         }
 
         // saltamos directamente al siguiente usuario saltando correctamente la memoria
-        fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int) + sizeof(bool) + sizeof(int), SEEK_CUR);
+        fseek(file, 3 + 14 + 14 + 10 + 14 + 14 + sizeof(bool) + sizeof(int) + sizeof(bool) + sizeof(int), SEEK_CUR);
 
     }
 
@@ -976,7 +1077,7 @@ int CalculateIdDynamic(int positionInList) {
     while (fread(&id, sizeof(id), 1, file) == 1) {
 
         // saltar la parte restante del user que no me interesa
-        fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int), SEEK_CUR);
+        fseek(file, 3 + 14 + 14 + 10 + 14 + 14 + sizeof(bool) + sizeof(int), SEEK_CUR);
 
         fread(&isDeleted, sizeof(isDeleted), 1, file);
         
@@ -1065,6 +1166,89 @@ void HandleTextInputDynamic() {
     }
 
     if (currentField == 3) {
+        for (int i = 48; i <= 57; i++) {
+
+            // añadimos / cada 2 numeros excepto final
+            if (birthdayLength == 2 || birthdayLength == 5) {
+                birthdayLength++;
+                birthday = (char*)realloc(birthday, birthdayLength + 1);
+                *(birthday + birthdayLength - 1) = '/';
+                *(birthday + birthdayLength) = '\0';
+            }
+
+            if (esat::IsKeyDown(i)  && birthdayLength < birthdayMaxLength) {
+                birthdayLength++;
+                birthday = (char*) realloc(birthday, birthdayLength + 1);
+                *(birthday+birthdayLength - 1) = (char)i;
+                *(birthday+birthdayLength) = '\0';
+            }
+        }
+
+        if ((esat::IsSpecialKeyDown(esat::kSpecialKey_Delete))
+            && birthdayLength > 0) {
+            if (*(birthday + birthdayLength - 1) == '/') {
+                birthdayLength -= 2;
+                if (birthdayLength < 0) birthdayLength = 0;
+            } else {
+                birthdayLength--;
+            }
+
+            *(birthday + birthdayLength) = '\0';
+        }
+    }
+
+    if (currentField == 4) {
+        for (int i = 32; i <= 126; i++) {
+            if (esat::IsKeyDown(i)  && provinceLength < provinceMaxLength) {
+                provinceLength++;
+                province = (char*) realloc(province, provinceLength + 1);
+                *(province+provinceLength - 1) = (char)i;
+                *(province+provinceLength) = '\0';
+            }
+        }
+
+        if ((esat::IsSpecialKeyDown(esat::kSpecialKey_Delete))
+            && provinceLength > 0) {
+            provinceLength--;
+            *(province+provinceLength) = '\0';
+        }
+    }
+
+    if (currentField == 5) {
+        for (int i = 32; i <= 126; i++) {
+            if (esat::IsKeyDown(i)  && emailLength < emailMaxLength) {
+                emailLength++;
+                email = (char*) realloc(email, emailLength + 1);
+                *(email+emailLength - 1) = (char)i;
+                *(email+emailLength) = '\0';
+            }
+        }
+
+        if ((esat::IsSpecialKeyDown(esat::kSpecialKey_Delete))
+            && emailLength > 0) {
+            emailLength--;
+            *(email+emailLength) = '\0';
+        }
+    }
+
+    if (currentField == 6) {
+        for (int i = '0'; i <= '9'; i++) {
+            if (esat::IsKeyDown(i)) {
+                int digit = i - '0';
+
+                if (credits <= creditsMax / 10) {
+                    credits = credits * 10 + digit;
+                }
+            }
+        }
+
+        // BORRAR (quitar última cifra)
+        if (esat::IsSpecialKeyDown(esat::kSpecialKey_Delete)) {
+            credits = credits / 10;
+        }
+    }
+
+    if (currentField == 7) {
         if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
             SaveUser();
 
@@ -1253,7 +1437,7 @@ void EditUser() {
             break;
         }
 
-        fseek(file, 3 + 14 + 14 + sizeof(bool) + sizeof(int) + sizeof(bool) + sizeof(int), SEEK_CUR);
+        fseek(file, 3 + 14 + 14 + 10 + 14 + 14 + sizeof(bool) + sizeof(int) + sizeof(bool) + sizeof(int), SEEK_CUR);
 
     }
 
@@ -1328,6 +1512,89 @@ void HandleEditSection() {
     }
 
     if (currentEditField == 3) {
+        for (int i = 48; i <= 57; i++) {
+
+            // añadimos / cada 2 numeros excepto final
+            if (birthdayEditLength == 2 || birthdayEditLength == 5) {
+                birthdayEditLength++;
+                birthdayEdit = (char*)realloc(birthdayEdit, birthdayEditLength + 1);
+                *(birthdayEdit + birthdayEditLength - 1) = '/';
+                *(birthdayEdit + birthdayEditLength) = '\0';
+            }
+
+            if (esat::IsKeyDown(i)  && birthdayEditLength < birthdayEditMaxLength) {
+                birthdayEditLength++;
+                birthdayEdit = (char*) realloc(birthdayEdit, birthdayEditLength + 1);
+                *(birthdayEdit+birthdayEditLength - 1) = (char)i;
+                *(birthdayEdit+birthdayEditLength) = '\0';
+            }
+        }
+
+        if ((esat::IsSpecialKeyDown(esat::kSpecialKey_Delete))
+            && birthdayEditLength > 0) {
+            if (*(birthdayEdit + birthdayEditLength - 1) == '/') {
+                birthdayEditLength -= 2;
+                if (birthdayEditLength < 0) birthdayEditLength = 0;
+            } else {
+                birthdayEditLength--;
+            }
+
+            *(birthdayEdit + birthdayEditLength) = '\0';
+        }
+    }
+
+    if (currentEditField == 4) {
+        for (int i = 32; i <= 126; i++) {
+            if (esat::IsKeyDown(i)  && provinceEditLength < provinceEditMaxLength) {
+                provinceEditLength++;
+                provinceEdit = (char*) realloc(provinceEdit, provinceEditLength + 1);
+                *(provinceEdit+provinceEditLength - 1) = (char)i;
+                *(provinceEdit+provinceEditLength) = '\0';
+            }
+        }
+
+        if ((esat::IsSpecialKeyDown(esat::kSpecialKey_Delete))
+            && provinceEditLength > 0) {
+            provinceEditLength--;
+            *(provinceEdit+provinceEditLength) = '\0';
+        }
+    }
+
+    if (currentEditField == 5) {
+        for (int i = 32; i <= 126; i++) {
+            if (esat::IsKeyDown(i)  && emailEditLength < emailEditMaxLength) {
+                emailEditLength++;
+                emailEdit = (char*) realloc(emailEdit, emailEditLength + 1);
+                *(emailEdit+emailEditLength - 1) = (char)i;
+                *(emailEdit+emailEditLength) = '\0';
+            }
+        }
+
+        if ((esat::IsSpecialKeyDown(esat::kSpecialKey_Delete))
+            && emailEditLength > 0) {
+            emailEditLength--;
+            *(emailEdit+emailEditLength) = '\0';
+        }
+    }
+
+    if (currentEditField == 6) {
+        for (int i = '0'; i <= '9'; i++) {
+            if (esat::IsKeyDown(i)) {
+                int digit = i - '0';
+
+                if (creditsEdit <= creditsMaxEdit / 10) {
+                    creditsEdit = creditsEdit * 10 + digit;
+                }
+            }
+        }
+
+        // BORRAR (quitar última cifra)
+        if (esat::IsSpecialKeyDown(esat::kSpecialKey_Delete)) {
+            creditsEdit = creditsEdit / 10;
+        }
+    }
+
+    if (currentEditField == 7) {
         if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
             EditUser();
             LoadUsers();
@@ -1438,29 +1705,47 @@ void DrawRegisterMenu() {
 
     esat::DrawSetTextSize(30);
     esat::DrawText(windowX / 3.5f, windowY / 7, "REGISTER INFO");
-    esat::DrawSetTextSize(24);
+    esat::DrawSetTextSize(15);
 
     esat::DrawText(windowX / 5, windowY / 4, "NICKNAME: ");
 
-    esat::DrawText(windowX / 5, windowY / 2.65f, "USER: ");
+    esat::DrawText(windowX / 5, windowY / 3.2f, "USER: ");
     
-    esat::DrawText(windowX / 5, windowY / 2, "PASSWORD: ");
+    esat::DrawText(windowX / 5, windowY / 2.6f, "PASSWORD: ");
 
-    esat::DrawSetTextSize(40);
-    esat::DrawText(windowX / 2.5f, windowY / 1.3f, "SAVE");
+    esat::DrawText(windowX / 5, windowY / 2.2f, "BIRTHDAY: ");
 
+    esat::DrawText(windowX / 5, windowY / 1.9f, "PROVINCE: ");
+
+    esat::DrawText(windowX / 5, windowY / 1.7f, "EMAIL: ");
+
+    esat::DrawText(windowX / 5, windowY / 1.5f, "CREDITS: ");
+
+    esat::DrawSetTextSize(30);
+    esat::DrawText(windowX / 2.5f, windowY - 50, "SAVE");
+
+    esat::DrawSetTextSize(12);
     // nickname
     esat::DrawText(windowX / 2, windowY / 4, nickname);
 
-    esat::DrawSetTextSize(26);
-    esat::DrawText(windowX / 2, windowY / 2.65f, userPlayer);
+    esat::DrawText(windowX / 2, windowY / 3.2f, userPlayer);
 
     char hiddenPass[50] = "";
     for(int i=0; i<passwordLength; i++) *(hiddenPass+i) = '*';
     hiddenPass[passwordLength] = '\0';
 
-    esat::DrawSetTextSize(40);
-    esat::DrawText(windowX / 2, windowY / 1.9f, hiddenPass);
+    esat::DrawSetTextSize(20);
+    esat::DrawText(windowX / 2, windowY / 2.6f, hiddenPass);
+
+    esat::DrawSetTextSize(15);
+    esat::DrawText(windowX / 2, windowY / 2.2f, birthday);
+    esat::DrawText(windowX / 2, windowY / 1.9f, province);
+    esat::DrawText(windowX / 2, windowY /1.7f, email);
+
+    char creditsText[20];
+    sprintf(creditsText, "%d", credits);
+    esat::DrawText(windowX / 2, windowY / 1.5f, creditsText);
+
 
     DrawBack();
 }
@@ -1496,27 +1781,47 @@ void DrawEditSection() {
 
     esat::DrawLine(windowX / 3.1f, windowY / 6, windowX / 1.5f, windowY / 6);
 
+    esat::DrawSetTextSize(15);
+
     esat::DrawText(windowX / 5, windowY / 4, "NICKNAME: ");
 
-    esat::DrawText(windowX / 5, windowY / 2.65f, "USER: ");
+    esat::DrawText(windowX / 5, windowY / 3.2f, "USER: ");
     
-    esat::DrawText(windowX / 5, windowY / 2, "PASSWORD: ");
+    esat::DrawText(windowX / 5, windowY / 2.6f, "PASSWORD: ");
 
-    esat::DrawText((windowX / 2.5f) - 20, windowY / 1.3f, "SAVE (S)");
+    esat::DrawText(windowX / 5, windowY / 2.2f, "BIRTHDAY: ");
 
+    esat::DrawText(windowX / 5, windowY / 1.9f, "PROVINCE: ");
+
+    esat::DrawText(windowX / 5, windowY / 1.7f, "EMAIL: ");
+
+    esat::DrawText(windowX / 5, windowY / 1.5f, "CREDITS: ");
+
+    esat::DrawSetTextSize(30);
+    esat::DrawText(windowX / 2.5f, windowY - 50, "SAVE");
+
+    esat::DrawSetTextSize(12);
     // nickname
     esat::DrawText(windowX / 2, windowY / 4, nicknameEdit);
 
-    esat::DrawSetTextSize(26);
-    esat::DrawText(windowX / 2, windowY / 2.65f, userPlayerEdit);
+    esat::DrawText(windowX / 2, windowY / 3.2f, userPlayerEdit);
 
     // tema de password
     char hiddenPass[50] = "";
     for(int i=0; i<passwordEditLength; i++) *(hiddenPass+i) = '*';
     hiddenPass[passwordEditLength] = '\0';
 
-    esat::DrawSetTextSize(40);
-    esat::DrawText(windowX / 2, windowY / 1.9f, hiddenPass);
+    esat::DrawSetTextSize(20);
+    esat::DrawText(windowX / 2, windowY / 2.6f, hiddenPass);
+
+    esat::DrawSetTextSize(15);
+    esat::DrawText(windowX / 2, windowY / 2.2f, birthdayEdit);
+    esat::DrawText(windowX / 2, windowY / 1.9f, provinceEdit);
+    esat::DrawText(windowX / 2, windowY /1.7f, emailEdit);
+
+    char creditsText[20];
+    sprintf(creditsText, "%d", credits);
+    esat::DrawText(windowX / 2, windowY / 1.5f, creditsText);
 
     DrawBack();
 }
