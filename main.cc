@@ -149,14 +149,19 @@ struct Asteroids {
     AsteroidsLevel level;
     AsteroidsType type;
     esat::Vec3 *vertices;
-    esat::Vec2 speed;
     esat::Vec3 centralPoint;
+    esat::Vec2 direction;
+    bool isAlive;
 };
 
 int actualLevel, totalAsteroidsPerLevels;
 int asteroidsV1Count = 0, asteroidsV2Count = 0, asteroidsV3Count = 0, asteroidsV4Count = 0;
 
 Asteroids* asteroids = nullptr;
+
+const int numPointsAsteroidsV1 = 20, numPointsAsteroidsV2 = 24, numPointsAsteroidsV3 = 24, numPointsAsteroidsV4 = 22;
+
+
 
 // Asteroids vertexs
 void VertsAsteroid1(esat::Vec3 *vertices) {
@@ -1422,7 +1427,6 @@ void EditUser() {
     while (fread(&id, sizeof(id), 1, file) == 1) {
 
         if (userId == id) {
-            printf("Igual \n");
 
             long pos = ftell(file);
 
@@ -1433,6 +1437,11 @@ void EditUser() {
             fwrite(nicknameEdit, 3, 1, file);
             fwrite(userPlayerEdit, 14, 1, file);
             fwrite(passwordEdit, 14, 1, file);
+            fwrite(birthdayEdit, 10, 1, file);
+            fwrite(provinceEdit, 14, 1, file);
+            fwrite(emailEdit, 14, 1, file);
+            fwrite(0, 1, 1, file);
+            fwrite(&creditsEdit, 4, 1, file);
 
             break;
         }
@@ -1820,7 +1829,7 @@ void DrawEditSection() {
     esat::DrawText(windowX / 2, windowY /1.7f, emailEdit);
 
     char creditsText[20];
-    sprintf(creditsText, "%d", credits);
+    sprintf(creditsText, "%d", creditsEdit);
     esat::DrawText(windowX / 2, windowY / 1.5f, creditsText);
 
     DrawBack();
@@ -1842,7 +1851,7 @@ esat::Mat3 UpdateFigurita(esat::Vec2 scale, float angle, esat::Vec2 whereMove) {
     return m;
 }
 
-void DrawFigurita(esat::Mat3 m, int numberOfFigures) {
+void DrawFigurita(esat::Mat3 m) {
 
     float points[numPoints * 2];
     esat::DrawSetFillColor(0, 0, 0, 0);
@@ -1857,38 +1866,62 @@ void DrawFigurita(esat::Mat3 m, int numberOfFigures) {
     esat::DrawSolidPath(points, numPoints, true);
 }
 
-void DrawAsteroidsVers1() {
-    
-}
+void DrawAsteroidsVer(Asteroids* asteroid) {
+    int totalPoints = 0;
+    switch((*asteroid).type) {
+        case V1:
+            totalPoints = numPointsAsteroidsV1;
+            VertsAsteroid1((*asteroid).vertices);
+        break;
+        case V2:
+            totalPoints = numPointsAsteroidsV2;
+            VertsAsteroid2((*asteroid).vertices);
+        break;
+        case V3:
+            totalPoints = numPointsAsteroidsV3;
+            VertsAsteroid3((*asteroid).vertices);
+        break;
+        case V4:
+            totalPoints = numPointsAsteroidsV4;
+            VertsAsteroid4((*asteroid).vertices);
+        break;
+    }
 
-void DrawAsteroidsVers2() {
-    
-}
+    esat::DrawSetFillColor(0, 0, 0, 0);
+    esat::DrawSetStrokeColor(255, 255, 255, 255);
 
-void DrawAsteroidsVers3() {
-    
-}
-
-void DrawAsteroidsVers4() {
-    
+    /*int points[totalPoints * 2];
+    for (int i = 0; i < totalPoints / 2; i++) {
+        
+        points[i*2] = (*asteroid).vertices[i].x;
+        points[i*2+1] = (*asteroid).vertices[i].y;
+    }*/
+    esat::DrawSolidPath((*asteroid).vertices, totalPoints / 2, true);
 }
 
 void DrawAsteroids() {
     for (int i = 0; i < totalAsteroidsPerLevels; i++) {
-        switch(asteroids[i].type) {
-            case AsteroidsType::V1:
+        DrawAsteroidsVer(&asteroids[i]);
+    }
+}
 
-            break;
-            case AsteroidsType::V2:
+void InitAsteroids() {
+    LevelConfig(actualLevel);
 
-            break;
-            case AsteroidsType::V3:
+    for (int i = 0; i < totalAsteroidsPerLevels; i++) {
+        float speedX = rand()%1000 / 1000.0f;
+        float speedY = rand()%1000 / 1000.0f;
 
-            break;
-            case AsteroidsType::V4:
+        int mOrD = rand()%2;
 
-            break;
-        }
+        float centralPointX = rand()% (int) windowX;
+        float centralPointY = rand()% (int) windowY;
+
+        asteroids[i].direction.x = cosf(speedX * (mOrD == 1 ? 1 : -1));
+        asteroids[i].direction.y = sinf(speedY * (mOrD == 1 ? 1 : -1));
+
+        asteroids[i].centralPoint.x = centralPointX;
+        asteroids[i].centralPoint.y = centralPointY;
     }
 }
 
@@ -1900,6 +1933,7 @@ int esat::main(int argc, char **argv) {
     GenerateSemilla();
     InitConfig();
     InitShip();
+    InitAsteroids();
 
     esat::Mat3 matriz = UpdateFigurita({1.0f, 1.0f}, 0.0f, {0.0f, 0.0f});
 
@@ -1919,6 +1953,7 @@ int esat::main(int argc, char **argv) {
             case Scenes::MAIN_MENU:
 
                 DrawMainMenu();
+                DrawAsteroids();
             break;
             case Scenes::HIGHSCORES:
 
@@ -1936,6 +1971,7 @@ int esat::main(int argc, char **argv) {
             case Scenes::ASK_REGISTER:
 
                 DrawAskRegisterMenu();
+                DrawAsteroids();
             break;
             case Scenes::LOAD_REGISTER:
 
@@ -1950,6 +1986,7 @@ int esat::main(int argc, char **argv) {
             case Scenes::GAMEPLAY:
  
                 HandleShipMovement();
+                DrawAsteroids();
 
                 // all this shit is going into handle hell function
                 // think about + and - acceleration
@@ -1990,7 +2027,7 @@ int esat::main(int argc, char **argv) {
                 matriz = UpdateFigurita({1.0f, 1.0f}, shipPlayer.angle, {shipPlayer.centralPoint.x, shipPlayer.centralPoint.y});
 
                 DrawGameplay();
-                DrawFigurita(matriz, numPoints);
+                DrawFigurita(matriz);
             break;
         }
 
