@@ -1890,13 +1890,13 @@ void DrawAsteroidsVer(Asteroids* asteroid) {
     esat::DrawSetFillColor(0, 0, 0, 0);
     esat::DrawSetStrokeColor(255, 255, 255, 255);
 
-    /*int points[totalPoints * 2];
+    int points[totalPoints * 2];
     for (int i = 0; i < totalPoints / 2; i++) {
         
         points[i*2] = (*asteroid).vertices[i].x;
         points[i*2+1] = (*asteroid).vertices[i].y;
-    }*/
-    esat::DrawSolidPath((*asteroid).vertices, totalPoints / 2, true);
+    }
+    esat::DrawSolidPath(points, totalPoints / 2, true);
 }
 
 void DrawAsteroids() {
