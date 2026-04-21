@@ -1855,7 +1855,7 @@ void DrawFigurita(esat::Mat3 m) {
     }
     esat::DrawSolidPath(points, numPoints, true);
     
-    //  
+    // dibujar vector director 
     esat::DrawLine(
         shipPlayer.centralPoint.x, 
         shipPlayer.centralPoint.y,
