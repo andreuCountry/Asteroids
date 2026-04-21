@@ -105,6 +105,12 @@ struct User {
 #define OFFSET_DELETED   78
 #define OFFSET_PUNTUA    79
 
+struct Shoot {
+    int numberShoots = 4;
+    esat::Vec3* points;
+    bool isVisible;
+};
+
 struct Ship {
     esat::Vec3* points;
     int lifes = 3;
@@ -113,6 +119,8 @@ struct Ship {
     esat::Vec2 speed = {0.0f, 0.0f};
     esat::Vec2 acceleration;
     float angle = 0.0f;
+    esat::Vec3 vectorDirector;
+    Shoot* shoots;
 };
 
 User user, userLooked;
@@ -164,67 +172,67 @@ bool pendingLevelChange = false;
 bool isChangingLevel = false;
 
 Asteroids* asteroids = nullptr;
-int maxAsteroids = 9;
+int maxAsteroids = 72;
 int activeAsteroids = 4;
 
 int pendingLevel = -1;
 
 // Asteroids vertexs
-void VertsAsteroid1(esat::Vec3 *vertices) {
-  *(vertices)     = { 0.00f,   0.40f,  1.0f};
-  *(vertices + 1) = {-0.20f,   0.60f,  1.0f};
-  *(vertices + 2) = {-0.49f,   0.30f,  1.0f};
-  *(vertices + 3) = { 0.20f,  -0.60f,  1.0f};
-  *(vertices + 4) = {-0.49f,  -0.29f,  1.0f};
-  *(vertices + 5) = {-0.20f,  -0.60f,  1.0f};
-  *(vertices + 6) = {-0.49f,  -0.30f,  1.0f};
-  *(vertices + 7) = { 0.29f,  -0.04f,  1.0f};
-  *(vertices + 8) = { 0.49f,   0.30f,  1.0f};
-  *(vertices + 9) = { 0.20f,   0.60f,  1.0f};
+void VertsAsteroid1(esat::Vec3 *vertices){
+    *(vertices) = {0.00f, 0.40f, 1.0f};
+    *(vertices + 1) = {0.20f, 0.60f, 1.0f};
+    *(vertices + 2) = {0.49f, 0.30f, 1.0f};
+    *(vertices + 3) = {0.36f, -0.06f, 1.0f};
+    *(vertices + 4) = {0.49f, -0.12f, 1.0f};
+    *(vertices + 5) = {0.13f, -0.44f, 1.0f};
+    *(vertices + 6) = {-0.27f, -0.44f, 1.0f};
+    *(vertices + 7) = {-0.48f, -0.12f, 1.0f};
+    *(vertices + 8) = {-0.49f, 0.30f, 1.0f};
+    *(vertices + 9) = {-0.20f, 0.60f, 1.0f};
 }
 
-void VertsAsteroid2(esat::Vec3 *vertices) {
-  *(vertices)      =  {-0.11f,   0.24f,  1.0f};
-  *(vertices + 1)  =  {-0.20f,   0.44f,  1.0f};
-  *(vertices + 2)  =  { 0.20f,   0.44f,  1.0f};
-  *(vertices + 3)  =  { 0.40f,   0.13f,  1.0f};
-  *(vertices + 4)  =  { 0.10f,  -0.07f,  1.0f};
-  *(vertices + 5)  =  {-0.40f,  -0.36f,  1.0f};
-  *(vertices + 6)  =  { 0.20f,   0.00f,  1.0f};
-  *(vertices + 7)  =  { 0.10f,  -0.45f,  1.0f};
-  *(vertices + 8)  =  { 0.49f,   0.30f,  1.0f};
-  *(vertices + 9)  =  {-0.07f,  -0.55f,  1.0f};
-  *(vertices + 10) =  {-0.40f,  -0.16f,  1.0f};
-  *(vertices + 11) =  {-0.40f,   0.24f,  1.0f};
+void VertsAsteroid2(esat::Vec3 *vertices){
+    *(vertices) = {0.0769f, -0.20274f, 1.0f};
+    *(vertices + 1) = {-0.1679f, -0.39662f, 1.0f};
+    *(vertices + 2) = {0.2f, -0.4f, 1.0f};
+    *(vertices + 3) = {0.40188f, -0.28188f, 1.0f};
+    *(vertices + 4) = {0.4f, -0.2f, 1.0f};
+    *(vertices + 5) = {0.30691f, -0.0049f, 1.0f};
+    *(vertices + 6) = {0.4f, 0.2f, 1.0f};
+    *(vertices + 7) = {0.2f, 0.4f, 1.0f};
+    *(vertices + 8) = {0.08533f, 0.3156, 1.0f};
+    *(vertices + 9) = {-0.12042, 0.39869, 1.0f};
+    *(vertices + 10) = {-0.31035, 0.13359, 1.0f};
+    *(vertices + 11) = {-0.3143, -0.20274, 1.0f};
 }
 
-void VertsAsteroid3(esat::Vec3 *vertices) {
-  *(vertices)      =  {-0.15f,   0.49f,  1.0f};
-  *(vertices + 1)  =  { 0.00f,   0.40f,  1.0f};
-  *(vertices + 2)  =  { 0.19f,   0.48f,  1.0f};
-  *(vertices + 3)  =  { 0.41f,   0.36f,  1.0f};
-  *(vertices + 4)  =  { 0.30f,   0.11f,  1.0f};
-  *(vertices + 5)  =  { 0.45f,  -0.12f,  1.0f};
-  *(vertices + 6)  =  { 0.19f,  -0.51f,  1.0f};
-  *(vertices + 7)  =  {-0.05f,  -0.44f,  1.0f};
-  *(vertices + 8)  =  {-0.20f,  -0.51f,  1.0f};
-  *(vertices + 9)  =  {-0.46f,  -0.13f,  1.0f};
-  *(vertices + 10) =  {-0.34f,   0.08f,  1.0f};
-  *(vertices + 11) =  {-0.46f,   0.36f,  1.0f};
+void VertsAsteroid3(esat::Vec3 *vertices){
+    *(vertices) = {0.15f, 0.47f, 1.0f};
+    *(vertices + 1) = {0.00f, 0.40f, 1.0f};
+    *(vertices + 2) = {-0.20f, 0.47f, 1.0f};
+    *(vertices + 3) = {-0.41f, 0.36f, 1.0f};
+    *(vertices + 4) = {-0.30f, 0.11f, 1.0f};
+    *(vertices + 5) = {-0.45f, -0.12f, 1.0f};
+    *(vertices + 6) = {-0.19f, -0.51f, 1.0f};
+    *(vertices + 7) = {0.05f, -0.44f, 1.0f};
+    *(vertices + 8) = {0.20f, -0.51f, 1.0f};
+    *(vertices + 9) = {0.46f, -0.13f, 1.0f};
+    *(vertices + 10) = {0.34f, 0.08f, 1.0f};
+    *(vertices + 11) = {0.46f, 0.36f, 1.0f};
 }
 
-void VertsAsteroid4(esat::Vec3 *vertices) {
-  *(vertices)      =  {-0.34f,   0.70f,  1.0f};
-  *(vertices + 1)  =  { 0.25f,   0.69f,  1.0f};
-  *(vertices + 2)  =  { 0.67f,   0.09f,  1.0f};
-  *(vertices + 3)  =  { 0.67f,  -0.12f,  1.0f};
-  *(vertices + 4)  =  { 0.26f,  -0.71f,  1.0f};
-  *(vertices + 5)  =  { 0.00f,  -0.71f,  1.0f};
-  *(vertices + 6)  =  { 0.00f,  -0.31f,  1.0f};
-  *(vertices + 7)  =  {-0.24f,  -0.71f,  1.0f};
-  *(vertices + 8)  =  {-0.63f,  -0.13f,  1.0f};
-  *(vertices + 9)  =  {-0.51f,   0.00f,  1.0f};
-  *(vertices + 10) =  {-0.64f,   0.10f,  1.0f};
+void VertsAsteroid4(esat::Vec3 *vertices){
+    *(vertices) = {-0.34f, 0.70f, 1.0f};
+    *(vertices + 1) = {0.25f, 0.69f, 1.0f};
+    *(vertices + 2) = {0.67f, 0.09f, 1.0f};
+    *(vertices + 3) = {0.67f, -0.12f, 1.0f};
+    *(vertices + 4) = {0.26f, -0.71f, 1.0f};
+    *(vertices + 5) = {0.00f, -0.71f, 1.0f};
+    *(vertices + 6) = {0.00f, -0.31f, 1.0f};
+    *(vertices + 7) = {-0.24f, -0.71f, 1.0f};
+    *(vertices + 8) = {-0.63f, -0.13f, 1.0f};
+    *(vertices + 9) = {-0.51f, 0.00f, 1.0f};
+    *(vertices + 10) = {-0.64f, 0.10f, 1.0f};
 }
 
 float DegreeToRadians(float degree) {
@@ -457,34 +465,6 @@ void CalculateAsteroidsPerLevel(int level) {
         asteroids[indexAsteroid].type = type;
 
         indexAsteroid++;
-    }
-
-    // printeo del tipo de asteroids
-    for (int i = 0; i < totalAsteroidsPerLevels; i++) {
-
-        printf("Asteroid [%d] -> ", i);
-
-        switch (asteroids[i].type) {
-            case AsteroidsType::V1:
-                printf("V1\n");
-            break;
-
-            case AsteroidsType::V2:
-                printf("V2\n");
-            break;
-
-            case AsteroidsType::V3:
-                printf("V3\n");
-            break;
-
-            case AsteroidsType::V4:
-                printf("V4\n");
-            break;
-
-            default:
-                printf("UNKNOWN\n");
-            break;
-        }
     }
 }
 
@@ -1874,13 +1854,20 @@ void DrawFigurita(esat::Mat3 m) {
         points[i*2+1] = tmp.y;
     }
     esat::DrawSolidPath(points, numPoints, true);
+    
+    //  
+    esat::DrawLine(
+        shipPlayer.centralPoint.x, 
+        shipPlayer.centralPoint.y,
+        shipPlayer.vectorDirector.x,
+        shipPlayer.vectorDirector.y
+    );
 }
 
 void UpdateGame() {
 
     if (pendingLevelChange) {
 
-        printf("bb \n");
 
         pendingLevelChange = false;
 
@@ -1890,8 +1877,6 @@ void UpdateGame() {
             pendingLevel = 5;
 
         actualLevel = pendingLevel;
-
-        printf("LEVEL CHANGE -> %d\n", actualLevel);
 
         LevelConfig(actualLevel);
         InitAsteroids();
@@ -2000,7 +1985,6 @@ int esat::main(int argc, char **argv) {
  
                 HandleShipMovement();
 
-                // Debug Level, gg FEDE, too easy
                 if (esat::IsKeyDown('I')) {
                     pendingLevelChange = true;
                 }
@@ -2010,11 +1994,11 @@ int esat::main(int argc, char **argv) {
                 // all this shit is going into handle hell function
                 // think about + and - acceleration
                 if (esat::IsKeyPressed('D')) {
-                    shipPlayer.angle += 0.05f;
+                    shipPlayer.angle += 0.1f;
                 }
 
                 if (esat::IsKeyPressed('A')) {
-                    shipPlayer.angle -= 0.05f;
+                    shipPlayer.angle -= 0.1f;
                 }
 
                 if (esat::IsKeyPressed('W')) {
@@ -2043,6 +2027,15 @@ int esat::main(int argc, char **argv) {
                 shipPlayer.centralPoint.x += shipPlayer.speed.x;
                 shipPlayer.centralPoint.y += shipPlayer.speed.y;
 
+                // calculinho del vector director
+                float pointX = cosf(shipPlayer.angle) * 60.0f;
+                float pointY = sinf(shipPlayer.angle) * 60.0f;
+
+                shipPlayer.vectorDirector = {
+                    shipPlayer.centralPoint.x + pointX,
+                    shipPlayer.centralPoint.y + pointY
+                };
+
                 if (shipPlayer.centralPoint.x > windowX) {
                     shipPlayer.centralPoint.x = 0;
                 } else if (shipPlayer.centralPoint.x < 0) {
@@ -2054,7 +2047,7 @@ int esat::main(int argc, char **argv) {
                 } else if (shipPlayer.centralPoint.y < 0) {
                     shipPlayer.centralPoint.y = windowY;
                 }
-                
+
                 matriz = UpdateFigurita({1.0f, 1.0f}, shipPlayer.angle, {shipPlayer.centralPoint.x, shipPlayer.centralPoint.y});
 
                 DrawGameplay();
