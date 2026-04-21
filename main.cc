@@ -106,9 +106,11 @@ struct User {
 #define OFFSET_PUNTUA    79
 
 struct Shoot {
-    int numberShoots = 4;
     esat::Vec3* points;
     bool isVisible;
+    esat::Vec3 vectorDirector;
+    float distanceTravelled;
+    float maxDistanceTravelled;
 };
 
 struct Ship {
@@ -121,6 +123,7 @@ struct Ship {
     float angle = 0.0f;
     esat::Vec3 vectorDirector;
     Shoot* shoots;
+    int numberShoots = 4;
 };
 
 User user, userLooked;
@@ -172,7 +175,7 @@ bool pendingLevelChange = false;
 bool isChangingLevel = false;
 
 Asteroids* asteroids = nullptr;
-int maxAsteroids = 72;
+const int maxAsteroids = 180;
 int activeAsteroids = 4;
 
 int pendingLevel = -1;
@@ -249,6 +252,15 @@ void InitShip() {
 
     shipPlayer.centralPoint = {windowX / 2, windowY / 2, 1.0f};
     shipPlayer.points = points;
+
+    shipPlayer.shoots = (Shoot*) malloc(sizeof(Shoot) * 4);
+
+    // inicializamos memory para que tenga siempre algo y no crashea, se podria iniciar a nullptr
+    for (int i = 0; i < shipPlayer.numberShoots; i++) {
+        shipPlayer.shoots[i].isVisible = false;
+
+        shipPlayer.shoots[i].points = (esat::Vec3*)malloc(sizeof(esat::Vec3) * 1);
+    }
 }
 
 void LoadUsers() {
@@ -493,6 +505,8 @@ void InitAsteroids() {
 
         asteroids[i].vertices = (esat::Vec3*)malloc(sizeof(esat::Vec3) * count);
 
+        asteroids[i].level = AsteroidsLevel::LEVEL_4;
+
         float speedX = rand()%1000 / 1000.0f;
         float speedY = rand()%1000 / 1000.0f;
 
@@ -556,6 +570,18 @@ void LevelConfig(int level) {
         break;
         case 5:
             totalAsteroidsPerLevels = 8;
+        break;
+        case 6:
+            totalAsteroidsPerLevels = 9;
+        break;
+        case 7:
+            totalAsteroidsPerLevels = 10;
+        break;
+        case 8:
+            totalAsteroidsPerLevels = 11;
+        break;
+        case 9:
+            totalAsteroidsPerLevels = 12;
         break;
     }
 
@@ -1826,10 +1852,6 @@ void DrawEditSection() {
     DrawBack();
 }
 
-void DrawGameplay() {
-
-}
-
 esat::Mat3 UpdateFigurita(esat::Vec2 scale, float angle, esat::Vec2 whereMove) {
 
     esat::Mat3 m = esat::Mat3Identity();
@@ -1856,12 +1878,12 @@ void DrawFigurita(esat::Mat3 m) {
     esat::DrawSolidPath(points, numPoints, true);
     
     // dibujar vector director 
-    esat::DrawLine(
+    /*esat::DrawLine(
         shipPlayer.centralPoint.x, 
         shipPlayer.centralPoint.y,
         shipPlayer.vectorDirector.x,
         shipPlayer.vectorDirector.y
-    );
+    );*/
 }
 
 void UpdateGame() {
@@ -1873,8 +1895,9 @@ void UpdateGame() {
 
         pendingLevel = actualLevel + 1;
 
-        if (pendingLevel > 5)
-            pendingLevel = 5;
+        if (pendingLevel > 9) {
+            pendingLevel = 9;
+        }
 
         actualLevel = pendingLevel;
 
@@ -1910,11 +1933,107 @@ void DrawAsteroidsVer(Asteroids* asteroid) {
     esat::DrawSetStrokeColor(255, 255, 255, 255);
 
     for (int i = 0; i < asteroid->numVertices; i++) {
-        points[i * 2] = asteroid->vertices[i].x  * 80.0f + asteroid->centralPoint.x;
-        points[i * 2 + 1] = asteroid->vertices[i].y * 80.0f + asteroid->centralPoint.y;
+        
+        float scale = 20.0f;
+        switch (asteroid->level) {
+            case AsteroidsLevel::LEVEL_1:
+                scale *= 1;
+            break;
+            case AsteroidsLevel::LEVEL_2:
+                scale *= 2;
+            break;
+            case AsteroidsLevel::LEVEL_3:
+                scale *= 3;
+            break;
+            case AsteroidsLevel::LEVEL_4:
+                scale *= 4;
+            break;
+        }
+
+        points[i * 2] = (asteroid->vertices[i].x  * scale) + asteroid->centralPoint.x;
+        points[i * 2 + 1] = (asteroid->vertices[i].y * 80.0f) + asteroid->centralPoint.y;
     }
 
     esat::DrawSolidPath(points, asteroid->numVertices, true);
+}
+
+void FireShoot() {
+    float bulletSpeed = 10.0f;
+    float offsetInsideShip = 20.0f;
+
+    for (int i = 0; i < shipPlayer.numberShoots; i++) {
+        if (!shipPlayer.shoots[i].isVisible) {
+
+            shipPlayer.shoots[i].isVisible = true;
+
+            // no puedo usar shipPlayer.points[lo que sea], porque esta en local, no en global
+            // creamos offset fictio usando el vector director
+            shipPlayer.shoots[i].points[0].x = shipPlayer.centralPoint.x + cosf(shipPlayer.angle) * offsetInsideShip;
+            shipPlayer.shoots[i].points[0].y = shipPlayer.centralPoint.y + sinf(shipPlayer.angle) * offsetInsideShip;
+            shipPlayer.shoots[i].points[0].z = 1.0f;
+
+            shipPlayer.shoots[i].vectorDirector.x = cosf(shipPlayer.angle) * bulletSpeed + shipPlayer.speed.x;
+            shipPlayer.shoots[i].vectorDirector.y = sinf(shipPlayer.angle) * bulletSpeed + shipPlayer.speed.y;
+
+            shipPlayer.shoots[i].distanceTravelled = 0.0f;
+            shipPlayer.shoots[i].maxDistanceTravelled = 400.0f;
+
+            break;
+        }
+    }
+}
+
+void UpdateShoots() {
+
+    const float speed = 8.0f;
+
+    for (int i = 0; i < shipPlayer.numberShoots; i++) {
+
+        if (shipPlayer.shoots[i].isVisible) {
+
+            float distanceX = shipPlayer.shoots[i].vectorDirector.x;
+            float distanceY = shipPlayer.shoots[i].vectorDirector.y;
+
+            shipPlayer.shoots[i].points[0].x += distanceX;
+            shipPlayer.shoots[i].points[0].y += distanceY;
+
+            shipPlayer.shoots[i].distanceTravelled += speed;
+
+            if (shipPlayer.shoots[i].distanceTravelled >= shipPlayer.shoots[i].maxDistanceTravelled) {
+
+                shipPlayer.shoots[i].isVisible = false;
+
+                shipPlayer.shoots[i].distanceTravelled = 0.0f;
+
+                shipPlayer.shoots[i].points[0].x = shipPlayer.points[0].x;
+                shipPlayer.shoots[i].points[0].y = shipPlayer.points[0].y;
+            }
+        }
+    }
+}
+
+void DrawShoots() {
+    esat::DrawSetFillColor(255, 255, 255, 255);
+    esat::DrawSetStrokeColor(255, 255, 255, 255);
+
+    for (int i = 0; i < shipPlayer.numberShoots; i++) {
+        if (shipPlayer.shoots[i].isVisible) {
+
+            // punta de la nave
+            float distanceX1 = shipPlayer.shoots[i].points[0].x;
+            float distanceY1 = shipPlayer.shoots[i].points[0].y;
+
+            float distanceX2 = shipPlayer.shoots[i].vectorDirector.x;
+            float distanceY2 = shipPlayer.shoots[i].vectorDirector.y;
+
+            float line[4] = {
+                distanceX1, distanceY1,
+                distanceX1 - distanceX2, distanceY1 - distanceY2
+            };
+
+            esat::DrawSolidPath(line, 2, false);
+        }
+    }
 }
 
 void DrawAsteroids() {
@@ -1991,6 +2110,12 @@ int esat::main(int argc, char **argv) {
                 UpdateAsteroids();
                 UpdateGame();
 
+                if (esat::IsSpecialKeyDown(esat::kSpecialKey_Space)) {
+                    FireShoot();
+                }
+
+                UpdateShoots();
+
                 // all this shit is going into handle hell function
                 // think about + and - acceleration
                 if (esat::IsKeyPressed('D')) {
@@ -2050,8 +2175,8 @@ int esat::main(int argc, char **argv) {
 
                 matriz = UpdateFigurita({1.0f, 1.0f}, shipPlayer.angle, {shipPlayer.centralPoint.x, shipPlayer.centralPoint.y});
 
-                DrawGameplay();
                 DrawFigurita(matriz);
+                DrawShoots();
                 if (!isChangingLevel) {
                     DrawAsteroids();
                 }
