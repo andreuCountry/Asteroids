@@ -2042,6 +2042,12 @@ void DrawAsteroids() {
     }
 }
 
+void BrokeAsteroid() {
+    for (int i = 0; i < totalAsteroidsPerLevel; i++) {
+        
+    }
+}
+
 int esat::main(int argc, char **argv) {
 
     esat::WindowInit(windowX, windowY);
@@ -2107,6 +2113,11 @@ int esat::main(int argc, char **argv) {
                 if (esat::IsKeyDown('I')) {
                     pendingLevelChange = true;
                 }
+
+                if (esat::IsKeyDown('0')) {
+                    BrokeAsteroid();
+                }
+
                 UpdateAsteroids();
                 UpdateGame();
 
