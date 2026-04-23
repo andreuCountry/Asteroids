@@ -546,7 +546,6 @@ void ResetConfig() {
             }
         }
 
-        // si hago esto, libero la memoria y la sobrescribo usando lo que habia de despues
         //free(asteroids);
         //asteroids = nullptr;
     }
@@ -2221,8 +2220,6 @@ int esat::main(int argc, char **argv) {
                     }*/
 
                 }
-
-
 
                 // all this shit is going into handle hell function
                 // think about + and - acceleration
