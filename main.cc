@@ -145,8 +145,7 @@ bool canPassPage = false;
 enum AsteroidsLevel {
     LEVEL_1,
     LEVEL_2,
-    LEVEL_3,
-    LEVEL_4
+    LEVEL_3
 };
 
 enum AsteroidsType {
@@ -505,7 +504,8 @@ void InitAsteroids() {
 
         asteroids[i].vertices = (esat::Vec3*)malloc(sizeof(esat::Vec3) * count);
 
-        asteroids[i].level = AsteroidsLevel::LEVEL_4;
+        asteroids[i].level = AsteroidsLevel::LEVEL_3;
+        asteroids[i].isAlive = true;
 
         float speedX = rand()%1000 / 1000.0f;
         float speedY = rand()%1000 / 1000.0f;
@@ -546,8 +546,9 @@ void ResetConfig() {
             }
         }
 
-        free(asteroids);
-        asteroids = nullptr;
+        // si hago esto, libero la memoria y la sobrescribo usando lo que habia de despues
+        //free(asteroids);
+        //asteroids = nullptr;
     }
 }
 
@@ -584,8 +585,6 @@ void LevelConfig(int level) {
             totalAsteroidsPerLevels = 12;
         break;
     }
-
-    asteroids = (Asteroids*) malloc(sizeof(Asteroids) * totalAsteroidsPerLevels);
 
     for (int i = 0; i < totalAsteroidsPerLevels; i++) {
         asteroids[i].vertices = nullptr;
@@ -1934,7 +1933,7 @@ void DrawAsteroidsVer(Asteroids* asteroid) {
 
     for (int i = 0; i < asteroid->numVertices; i++) {
         
-        float scale = 20.0f;
+        float scale = 25.0f;
         switch (asteroid->level) {
             case AsteroidsLevel::LEVEL_1:
                 scale *= 1;
@@ -1945,13 +1944,10 @@ void DrawAsteroidsVer(Asteroids* asteroid) {
             case AsteroidsLevel::LEVEL_3:
                 scale *= 3;
             break;
-            case AsteroidsLevel::LEVEL_4:
-                scale *= 4;
-            break;
         }
 
         points[i * 2] = (asteroid->vertices[i].x  * scale) + asteroid->centralPoint.x;
-        points[i * 2 + 1] = (asteroid->vertices[i].y * 80.0f) + asteroid->centralPoint.y;
+        points[i * 2 + 1] = (asteroid->vertices[i].y * scale) + asteroid->centralPoint.y;
     }
 
     esat::DrawSolidPath(points, asteroid->numVertices, true);
@@ -2012,6 +2008,25 @@ void UpdateShoots() {
     }
 }
 
+esat::Vec2 CalculateVectorDirector(esat::Vec3 point1, esat::Vec3 point2) {
+
+    esat::Vec2 vectorDirector = {0, 0};
+
+    vectorDirector.x = point2.x - point1.x;
+    vectorDirector.y = point2.y - point1.y;
+
+    return vectorDirector;
+}
+
+bool CollisionDetected(esat::Vec2 vectorDirector, esat::Vec2 vectorDirector2) {
+    float x, y;
+    //esat::Vec2 vectorDirector1, vectorDirector2;
+
+    // vectorDirector1 = 
+
+    return true;
+}
+
 void DrawShoots() {
     esat::DrawSetFillColor(255, 255, 255, 255);
     esat::DrawSetStrokeColor(255, 255, 255, 255);
@@ -2038,14 +2053,80 @@ void DrawShoots() {
 
 void DrawAsteroids() {
     for (int i = 0; i < totalAsteroidsPerLevels; i++) {
-        DrawAsteroidsVer(&asteroids[i]);
+        if (asteroids[i].isAlive) {
+            DrawAsteroidsVer(&asteroids[i]);
+        }
     }
 }
 
-void BrokeAsteroid() {
-    for (int i = 0; i < totalAsteroidsPerLevel; i++) {
-        
+void ActivateNewAsteroid(Asteroids asteroid) {
+
+    int count = 0;
+
+    switch (asteroid.type) {
+        case V1:
+            count = numPointsAsteroidsV1;
+            break;
+        case V2:
+            count = numPointsAsteroidsV2;
+            break;
+        case V3:
+            count = numPointsAsteroidsV3;
+            break;
+        case V4:
+            count = numPointsAsteroidsV4;
+        break;
     }
+
+    asteroids[totalAsteroidsPerLevels].numVertices = count;
+
+    asteroids[totalAsteroidsPerLevels].vertices = (esat::Vec3*)malloc(sizeof(esat::Vec3) * count);
+
+    asteroids[totalAsteroidsPerLevels].isAlive = true;
+    asteroids[totalAsteroidsPerLevels].level = asteroid.level;
+    asteroids[totalAsteroidsPerLevels].type = asteroid.type;
+
+    float speedX = rand()%1000 / 1000.0f;
+    float speedY = rand()%1000 / 1000.0f;
+
+    int mOrD = rand()%2;
+
+    // float centralPointX = asteroid.centralPoint.x;
+    // float centralPointY = asteroid.centralPoint.y;
+
+    asteroids[totalAsteroidsPerLevels].direction.x = cosf(speedX * (mOrD == 1 ? 1 : -1));
+    asteroids[totalAsteroidsPerLevels].direction.y = sinf(speedY * (mOrD == 1 ? 1 : -1));
+
+    asteroids[totalAsteroidsPerLevels].centralPoint = asteroid.centralPoint;
+    //asteroids[totalAsteroidsPerLevels].centralPoint.y = asteroid.centralPoint.y;
+
+    switch (asteroids[totalAsteroidsPerLevels].type) {
+        case V1: VertsAsteroid1(asteroids[totalAsteroidsPerLevels].vertices); break;
+        case V2: VertsAsteroid2(asteroids[totalAsteroidsPerLevels].vertices); break;
+        case V3: VertsAsteroid3(asteroids[totalAsteroidsPerLevels].vertices); break;
+        case V4: VertsAsteroid4(asteroids[totalAsteroidsPerLevels].vertices); break;
+    }
+
+    totalAsteroidsPerLevels++;
+}
+
+void BrokeAsteroid(Asteroids* asteroid_broke) {
+
+    if (asteroid_broke->level == AsteroidsLevel::LEVEL_1) {
+        asteroid_broke->isAlive = false;
+        return;
+    }
+
+    switch (asteroid_broke->level) {
+        case AsteroidsLevel::LEVEL_3:
+            asteroid_broke->level = LEVEL_2;
+        break;
+        case AsteroidsLevel::LEVEL_2:
+            asteroid_broke->level = LEVEL_1;
+        break;
+    }
+    
+    ActivateNewAsteroid(*asteroid_broke);
 }
 
 int esat::main(int argc, char **argv) {
@@ -2114,8 +2195,8 @@ int esat::main(int argc, char **argv) {
                     pendingLevelChange = true;
                 }
 
-                if (esat::IsKeyDown('0')) {
-                    BrokeAsteroid();
+                if (esat::IsKeyDown('O')) {
+                    BrokeAsteroid(&asteroids[0]);
                 }
 
                 UpdateAsteroids();
@@ -2126,6 +2207,22 @@ int esat::main(int argc, char **argv) {
                 }
 
                 UpdateShoots();
+
+                for (int i = 0; i < 5; i++) {
+                    esat::Vec3 nextVertexToSee = shipPlayer.points[0];
+                    if (i + 1 < 5) {
+                        esat::Vec3 nextVertexToSee = shipPlayer.points[i + 1];
+                    }
+                    
+                    esat::Vec2 vectorDirectorShip = CalculateVectorDirector(shipPlayer.points[i], nextVertexToSee);
+
+                    /*for (int j = 0; j < totalAsteroidsPerLevels; j++) {
+                        for (int k = 0; k < asteroids[j].num)
+                    }*/
+
+                }
+
+
 
                 // all this shit is going into handle hell function
                 // think about + and - acceleration
