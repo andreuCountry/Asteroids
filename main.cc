@@ -124,7 +124,10 @@ struct Ship {
     esat::Vec3 vectorDirector;
     Shoot* shoots;
     int numberShoots = 4;
+    bool inmortality = false;
 };
+
+float timeInmortality = 0;
 
 User user, userLooked;
 User* usersToShow = nullptr;
@@ -2017,13 +2020,30 @@ esat::Vec2 CalculateVectorDirector(esat::Vec3 point1, esat::Vec3 point2) {
     return vectorDirector;
 }
 
-bool CollisionDetected(esat::Vec2 vectorDirector, esat::Vec2 vectorDirector2) {
-    float x, y;
-    //esat::Vec2 vectorDirector1, vectorDirector2;
+float CrossProduct(esat::Vec2 point1, esat::Vec2 point2) {
+    return point1.x * point2.y - point1.y * point2.x;
+}
 
-    // vectorDirector1 = 
+bool CollisionDetected(esat::Vec2 point1, esat::Vec2 point2, esat::Vec2 point3, esat::Vec2 point4) {
+    
+    esat::Vec2 vectorDirector1 = {point2.x - point1.x, point2.y - point1.y};
+    esat::Vec2 vectorDirector2 = {point4.x - point3.x, point4.y - point3.y};
 
-    return true;
+    float divisor = CrossProduct(vectorDirector1, vectorDirector2);
+
+    // checkeo que se nos lia
+    if (divisor == 0.0f) {
+        return false;
+    }
+
+    // suponemos que ahora queremos los dos inicios de los segmentos de colisiones vaya
+
+    esat::Vec2 distanceBetween = {point3.x - point1.x, point3.y - point1.y};
+
+    float intersection1 = CrossProduct(distanceBetween, vectorDirector2) / divisor; 
+    float intersection2 = CrossProduct(distanceBetween, vectorDirector1) / divisor;
+
+    return (intersection1 <= 1 && intersection1 >= 0 && intersection2 <= 1 && intersection2 >= 0);
 }
 
 void DrawShoots() {
@@ -2128,6 +2148,32 @@ void BrokeAsteroid(Asteroids* asteroid_broke) {
     ActivateNewAsteroid(*asteroid_broke);
 }
 
+void SpawnPlayer() {
+    shipPlayer.centralPoint = {windowX / 2, windowY / 2};
+}
+
+void RestLifes() {
+    shipPlayer.inmortality = true;
+    printf("Lifes: [%d] \n", shipPlayer.lifes);
+    printf("toque \n");
+    shipPlayer.lifes--;
+    SpawnPlayer();
+    timeInmortality = 0;
+}
+
+void CheckInmortality(float deltaTime) {
+    if (shipPlayer.inmortality) {
+
+        // Logic
+        timeInmortality += deltaTime;
+        printf("Inmortality timer: [%f] \n", timeInmortality);
+
+        if (timeInmortality > 3) {
+            shipPlayer.inmortality = false;
+        }
+    }
+}
+
 int esat::main(int argc, char **argv) {
 
     esat::WindowInit(windowX, windowY);
@@ -2207,18 +2253,56 @@ int esat::main(int argc, char **argv) {
 
                 UpdateShoots();
 
-                for (int i = 0; i < 5; i++) {
-                    esat::Vec3 nextVertexToSee = shipPlayer.points[0];
-                    if (i + 1 < 5) {
-                        esat::Vec3 nextVertexToSee = shipPlayer.points[i + 1];
-                    }
+                // fumadinha de colisiones, primero por nave con asteroids
+
+                bool collision = false;
+                for (int i = 0; i < 5 && !collision; i++) {
+
+                    int nextI = (i + 1) % 5;
                     
-                    esat::Vec2 vectorDirectorShip = CalculateVectorDirector(shipPlayer.points[i], nextVertexToSee);
+                    for (int j = 0; j < totalAsteroidsPerLevels; j++) {
+                        for (int k = 0; k < asteroids[j].numVertices; k++) {
 
-                    /*for (int j = 0; j < totalAsteroidsPerLevels; j++) {
-                        for (int k = 0; k < asteroids[j].num)
-                    }*/
+                            int nextK = (k + 1) % asteroids[j].numVertices;
 
+                            //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.points[i].x + shipPlayer.centralPoint.x, shipPlayer.points[i].y + shipPlayer.centralPoint.y);
+                            //printf("Puntos asteroids: [%f]   ----    [%f] \n", asteroids[j].vertices[k].x + + asteroids[j].centralPoint.x, asteroids[j].vertices[k].y + + asteroids[j].centralPoint.y);
+
+                            esat::Vec2 centralPointShip = {shipPlayer.centralPoint.x, shipPlayer.centralPoint.y};
+                            esat::Vec2 centralPointAsteroid = {asteroids[j].centralPoint.x, asteroids[j].centralPoint.y};
+
+                            float scaleAsteroid = 25.0f;
+
+                            switch (asteroids[j].level) {
+                                case AsteroidsLevel::LEVEL_1:
+                                    scaleAsteroid *= 1;
+                                break;
+                                case AsteroidsLevel::LEVEL_2:
+                                    scaleAsteroid *= 2;
+                                break;
+                                case AsteroidsLevel::LEVEL_3:
+                                    scaleAsteroid *= 3;
+                                break;
+                            };
+
+                            esat::Vec2 point1 = {shipPlayer.points[i].x + centralPointShip.x, shipPlayer.points[i].y + centralPointShip.y};
+                            esat::Vec2 point2 = {shipPlayer.points[nextI].x + centralPointShip.x, shipPlayer.points[nextI].y + centralPointShip.y};
+                            esat::Vec2 point3 = {(asteroids[j].vertices[k].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[k].y * scaleAsteroid) + centralPointAsteroid.y};
+                            esat::Vec2 point4 = {(asteroids[j].vertices[nextK].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[nextK].y * scaleAsteroid) + centralPointAsteroid.y};
+
+
+                            if (CollisionDetected(point1, point2, point3, point4)) {
+                                collision = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                CheckInmortality(esat::Time() * 0.001f);
+
+                if (collision && !shipPlayer.inmortality) {
+                    RestLifes();
                 }
 
                 // all this shit is going into handle hell function
@@ -2249,10 +2333,11 @@ int esat::main(int argc, char **argv) {
                         shipPlayer.speed.y += shipPlayer.acceleration.y;
                     }
 
-                } else {
-                    shipPlayer.speed.x *= deceleration;
-                    shipPlayer.speed.y *= deceleration;
                 }
+
+                // desacelera siempre
+                shipPlayer.speed.x *= deceleration;
+                shipPlayer.speed.y *= deceleration;
 
                 shipPlayer.centralPoint.x += shipPlayer.speed.x;
                 shipPlayer.centralPoint.y += shipPlayer.speed.y;
