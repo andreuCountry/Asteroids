@@ -111,6 +111,7 @@ struct Shoot {
     esat::Vec3 vectorDirector;
     float distanceTravelled;
     float maxDistanceTravelled;
+    esat::Vec2 centralPoint;
 };
 
 struct Ship {
@@ -166,6 +167,7 @@ struct Asteroids {
     esat::Vec2 direction;
     bool isAlive;
     int numVertices;
+    bool canCollide = false;
 };
 
 int actualLevel, totalAsteroidsPerLevels;
@@ -262,6 +264,7 @@ void InitShip() {
         shipPlayer.shoots[i].isVisible = false;
 
         shipPlayer.shoots[i].points = (esat::Vec3*)malloc(sizeof(esat::Vec3) * 1);
+        shipPlayer.shoots[i].centralPoint = {shipPlayer.centralPoint.x, shipPlayer.centralPoint.y};
     }
 }
 
@@ -509,6 +512,7 @@ void InitAsteroids() {
 
         asteroids[i].level = AsteroidsLevel::LEVEL_3;
         asteroids[i].isAlive = true;
+        asteroids[i].canCollide = true;
 
         float speedX = rand()%1000 / 1000.0f;
         float speedY = rand()%1000 / 1000.0f;
@@ -2005,6 +2009,8 @@ void UpdateShoots() {
 
                 shipPlayer.shoots[i].points[0].x = shipPlayer.points[0].x;
                 shipPlayer.shoots[i].points[0].y = shipPlayer.points[0].y;
+
+                // para sacar colisiones necesitamos un punto central fijo que se mueva dinamicamente
             }
         }
     }
@@ -2133,6 +2139,7 @@ void BrokeAsteroid(Asteroids* asteroid_broke) {
 
     if (asteroid_broke->level == AsteroidsLevel::LEVEL_1) {
         asteroid_broke->isAlive = false;
+        asteroid_broke->canCollide = false;
         return;
     }
 
@@ -2240,10 +2247,17 @@ int esat::main(int argc, char **argv) {
  
                 HandleShipMovement();
 
-                if (esat::IsKeyDown('I')) {
-                    pendingLevelChange = true;
+                // control de paso de nivel;
+                pendingLevelChange = true;
+ 
+                for (int l = 0; l < totalAsteroidsPerLevels; l++) {
+                    if (asteroids[l].isAlive) {
+                        pendingLevelChange = false;
+                    }
                 }
+                
 
+                // Debug colliusion with asteroids
                 if (esat::IsKeyDown('O')) {
                     BrokeAsteroid(&asteroids[0]);
                 }
@@ -2261,12 +2275,62 @@ int esat::main(int argc, char **argv) {
 
                 bool collision = false;
 
-                printf("Inmortalidad: %d \n", shipPlayer.inmortality);
                 if (!shipPlayer.inmortality) {
                     for (int i = 0; i < 5 && !collision; i++) {
 
                         int nextI = (i + 1) % 5;
                         
+                        for (int j = 0; j < totalAsteroidsPerLevels; j++) {
+                            if (asteroids[j].canCollide) {
+                                for (int k = 0; k < asteroids[j].numVertices; k++) {
+
+                                    int nextK = (k + 1) % asteroids[j].numVertices;
+
+                                    //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.points[i].x + shipPlayer.centralPoint.x, shipPlayer.points[i].y + shipPlayer.centralPoint.y);
+                                    //printf("Puntos asteroids: [%f]   ----    [%f] \n", asteroids[j].vertices[k].x + + asteroids[j].centralPoint.x, asteroids[j].vertices[k].y + + asteroids[j].centralPoint.y);
+
+                                    esat::Vec2 centralPointShip = {shipPlayer.centralPoint.x, shipPlayer.centralPoint.y};
+                                    esat::Vec2 centralPointAsteroid = {asteroids[j].centralPoint.x, asteroids[j].centralPoint.y};
+
+                                    float scaleAsteroid = 25.0f;
+
+                                    switch (asteroids[j].level) {
+                                        case AsteroidsLevel::LEVEL_1:
+                                            scaleAsteroid *= 1;
+                                        break;
+                                        case AsteroidsLevel::LEVEL_2:
+                                            scaleAsteroid *= 2;
+                                        break;
+                                        case AsteroidsLevel::LEVEL_3:
+                                            scaleAsteroid *= 3;
+                                        break;
+                                    };
+
+                                    esat::Vec2 point1 = {shipPlayer.points[i].x + centralPointShip.x, shipPlayer.points[i].y + centralPointShip.y};
+                                    esat::Vec2 point2 = {shipPlayer.points[nextI].x + centralPointShip.x, shipPlayer.points[nextI].y + centralPointShip.y};
+                                    esat::Vec2 point3 = {(asteroids[j].vertices[k].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[k].y * scaleAsteroid) + centralPointAsteroid.y};
+                                    esat::Vec2 point4 = {(asteroids[j].vertices[nextK].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[nextK].y * scaleAsteroid) + centralPointAsteroid.y};
+
+                                    if (CollisionDetected(point1, point2, point3, point4)) {
+                                        collision = true;
+                                        BrokeAsteroid(&asteroids[j]);
+                                        break;
+                                    }
+                                }
+
+                                if (collision) break;
+                            }
+                        }
+
+                        if (collision) break;
+                    }
+
+                }
+
+                // Colision de las balas del player con asteroids
+                bool bulletCollision = false;
+                for (int i = 0; i < shipPlayer.numberShoots && !bulletCollision; i++) {
+                    if (shipPlayer.shoots[i].isVisible) {
                         for (int j = 0; j < totalAsteroidsPerLevels; j++) {
                             for (int k = 0; k < asteroids[j].numVertices; k++) {
 
@@ -2275,7 +2339,7 @@ int esat::main(int argc, char **argv) {
                                 //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.points[i].x + shipPlayer.centralPoint.x, shipPlayer.points[i].y + shipPlayer.centralPoint.y);
                                 //printf("Puntos asteroids: [%f]   ----    [%f] \n", asteroids[j].vertices[k].x + + asteroids[j].centralPoint.x, asteroids[j].vertices[k].y + + asteroids[j].centralPoint.y);
 
-                                esat::Vec2 centralPointShip = {shipPlayer.centralPoint.x, shipPlayer.centralPoint.y};
+                                esat::Vec2 centralPointBullet = {shipPlayer.shoots[i].points[0].x, shipPlayer.shoots[i].points[0].y};
                                 esat::Vec2 centralPointAsteroid = {asteroids[j].centralPoint.x, asteroids[j].centralPoint.y};
 
                                 float scaleAsteroid = 25.0f;
@@ -2292,31 +2356,30 @@ int esat::main(int argc, char **argv) {
                                     break;
                                 };
 
-                                esat::Vec2 point1 = {shipPlayer.points[i].x + centralPointShip.x, shipPlayer.points[i].y + centralPointShip.y};
-                                esat::Vec2 point2 = {shipPlayer.points[nextI].x + centralPointShip.x, shipPlayer.points[nextI].y + centralPointShip.y};
+                                esat::Vec2 point1 = {shipPlayer.shoots[i].points[0].x, shipPlayer.shoots[i].points[0].y};
+                                esat::Vec2 point2 = {shipPlayer.shoots[i].points[0].x + shipPlayer.shoots[i].vectorDirector.x, shipPlayer.shoots[i].points[0].y + shipPlayer.shoots[i].vectorDirector.y};
                                 esat::Vec2 point3 = {(asteroids[j].vertices[k].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[k].y * scaleAsteroid) + centralPointAsteroid.y};
                                 esat::Vec2 point4 = {(asteroids[j].vertices[nextK].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[nextK].y * scaleAsteroid) + centralPointAsteroid.y};
 
 
                                 if (CollisionDetected(point1, point2, point3, point4)) {
-                                    collision = true;
+                                    shipPlayer.shoots[i].isVisible = false;
+                                    BrokeAsteroid(&asteroids[j]);
+                                    bulletCollision = true;
                                     break;
                                 }
                             }
-
-                            if (collision) break;
+                            if (bulletCollision) break;
                         }
-
-                        if (collision) break;
+                        if (bulletCollision) break;
                     }
-
                 }
                 
                 if (collision && !shipPlayer.inmortality) {
                     RestLifes();
                 }
 
-                CheckInmortality((current_time - last_time) / 1000 * (fps * 0.4f));
+                CheckInmortality((current_time - last_time) / 1000 * (fps * 0.6f));
 
                 // all this shit is going into handle hell function
                 // think about + and - acceleration
