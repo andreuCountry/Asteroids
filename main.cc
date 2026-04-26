@@ -2108,6 +2108,7 @@ void ActivateNewAsteroid(Asteroids asteroid) {
     asteroids[totalAsteroidsPerLevels].vertices = (esat::Vec3*)malloc(sizeof(esat::Vec3) * count);
 
     asteroids[totalAsteroidsPerLevels].isAlive = true;
+    asteroids[totalAsteroidsPerLevels].canCollide = true;
     asteroids[totalAsteroidsPerLevels].level = asteroid.level;
     asteroids[totalAsteroidsPerLevels].type = asteroid.type;
 
@@ -2255,12 +2256,6 @@ int esat::main(int argc, char **argv) {
                         pendingLevelChange = false;
                     }
                 }
-                
-
-                // Debug colliusion with asteroids
-                if (esat::IsKeyDown('O')) {
-                    BrokeAsteroid(&asteroids[0]);
-                }
 
                 UpdateAsteroids();
                 UpdateGame();
@@ -2317,9 +2312,8 @@ int esat::main(int argc, char **argv) {
                                         break;
                                     }
                                 }
-
-                                if (collision) break;
                             }
+                            if (collision) break;
                         }
 
                         if (collision) break;
@@ -2332,41 +2326,43 @@ int esat::main(int argc, char **argv) {
                 for (int i = 0; i < shipPlayer.numberShoots && !bulletCollision; i++) {
                     if (shipPlayer.shoots[i].isVisible) {
                         for (int j = 0; j < totalAsteroidsPerLevels; j++) {
-                            for (int k = 0; k < asteroids[j].numVertices; k++) {
+                            if (asteroids[j].canCollide) {
+                                for (int k = 0; k < asteroids[j].numVertices; k++) {
 
-                                int nextK = (k + 1) % asteroids[j].numVertices;
+                                    int nextK = (k + 1) % asteroids[j].numVertices;
 
-                                //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.points[i].x + shipPlayer.centralPoint.x, shipPlayer.points[i].y + shipPlayer.centralPoint.y);
-                                //printf("Puntos asteroids: [%f]   ----    [%f] \n", asteroids[j].vertices[k].x + + asteroids[j].centralPoint.x, asteroids[j].vertices[k].y + + asteroids[j].centralPoint.y);
+                                    //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.points[i].x + shipPlayer.centralPoint.x, shipPlayer.points[i].y + shipPlayer.centralPoint.y);
+                                    //printf("Puntos asteroids: [%f]   ----    [%f] \n", asteroids[j].vertices[k].x + + asteroids[j].centralPoint.x, asteroids[j].vertices[k].y + + asteroids[j].centralPoint.y);
 
-                                esat::Vec2 centralPointBullet = {shipPlayer.shoots[i].points[0].x, shipPlayer.shoots[i].points[0].y};
-                                esat::Vec2 centralPointAsteroid = {asteroids[j].centralPoint.x, asteroids[j].centralPoint.y};
+                                    esat::Vec2 centralPointBullet = {shipPlayer.shoots[i].points[0].x, shipPlayer.shoots[i].points[0].y};
+                                    esat::Vec2 centralPointAsteroid = {asteroids[j].centralPoint.x, asteroids[j].centralPoint.y};
 
-                                float scaleAsteroid = 25.0f;
+                                    float scaleAsteroid = 25.0f;
 
-                                switch (asteroids[j].level) {
-                                    case AsteroidsLevel::LEVEL_1:
-                                        scaleAsteroid *= 1;
-                                    break;
-                                    case AsteroidsLevel::LEVEL_2:
-                                        scaleAsteroid *= 2;
-                                    break;
-                                    case AsteroidsLevel::LEVEL_3:
-                                        scaleAsteroid *= 3;
-                                    break;
-                                };
+                                    switch (asteroids[j].level) {
+                                        case AsteroidsLevel::LEVEL_1:
+                                            scaleAsteroid *= 1;
+                                        break;
+                                        case AsteroidsLevel::LEVEL_2:
+                                            scaleAsteroid *= 2;
+                                        break;
+                                        case AsteroidsLevel::LEVEL_3:
+                                            scaleAsteroid *= 3;
+                                        break;
+                                    };
 
-                                esat::Vec2 point1 = {shipPlayer.shoots[i].points[0].x, shipPlayer.shoots[i].points[0].y};
-                                esat::Vec2 point2 = {shipPlayer.shoots[i].points[0].x + shipPlayer.shoots[i].vectorDirector.x, shipPlayer.shoots[i].points[0].y + shipPlayer.shoots[i].vectorDirector.y};
-                                esat::Vec2 point3 = {(asteroids[j].vertices[k].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[k].y * scaleAsteroid) + centralPointAsteroid.y};
-                                esat::Vec2 point4 = {(asteroids[j].vertices[nextK].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[nextK].y * scaleAsteroid) + centralPointAsteroid.y};
+                                    esat::Vec2 point1 = {shipPlayer.shoots[i].points[0].x, shipPlayer.shoots[i].points[0].y};
+                                    esat::Vec2 point2 = {shipPlayer.shoots[i].points[0].x + shipPlayer.shoots[i].vectorDirector.x, shipPlayer.shoots[i].points[0].y + shipPlayer.shoots[i].vectorDirector.y};
+                                    esat::Vec2 point3 = {(asteroids[j].vertices[k].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[k].y * scaleAsteroid) + centralPointAsteroid.y};
+                                    esat::Vec2 point4 = {(asteroids[j].vertices[nextK].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[nextK].y * scaleAsteroid) + centralPointAsteroid.y};
 
 
-                                if (CollisionDetected(point1, point2, point3, point4)) {
-                                    shipPlayer.shoots[i].isVisible = false;
-                                    BrokeAsteroid(&asteroids[j]);
-                                    bulletCollision = true;
-                                    break;
+                                    if (CollisionDetected(point1, point2, point3, point4)) {
+                                        shipPlayer.shoots[i].isVisible = false;
+                                        BrokeAsteroid(&asteroids[j]);
+                                        bulletCollision = true;
+                                        break;
+                                    }
                                 }
                             }
                             if (bulletCollision) break;
