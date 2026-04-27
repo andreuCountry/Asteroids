@@ -2268,19 +2268,15 @@ void ActivateNewAsteroid(Asteroids asteroid) {
     asteroids[totalAsteroidsPerLevels].level = asteroid.level;
     asteroids[totalAsteroidsPerLevels].type = asteroid.type;
 
-    float speedX = rand()%1000 / 1000.0f;
-    float speedY = rand()%1000 / 1000.0f;
+    float speedX = rand()%2000 / 1000.0f;
+    float speedY = rand()%2000 / 1000.0f;
 
     int mOrD = rand()%2;
-
-    // float centralPointX = asteroid.centralPoint.x;
-    // float centralPointY = asteroid.centralPoint.y;
 
     asteroids[totalAsteroidsPerLevels].direction.x = cosf(speedX * (mOrD == 1 ? 1 : -1));
     asteroids[totalAsteroidsPerLevels].direction.y = sinf(speedY * (mOrD == 1 ? 1 : -1));
 
     asteroids[totalAsteroidsPerLevels].centralPoint = asteroid.centralPoint;
-    //asteroids[totalAsteroidsPerLevels].centralPoint.y = asteroid.centralPoint.y;
 
     switch (asteroids[totalAsteroidsPerLevels].type) {
         case V1: VertsAsteroid1(asteroids[totalAsteroidsPerLevels].vertices); break;
