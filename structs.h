@@ -5,10 +5,6 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
-enum AsteroidType {
-
-};
-
 enum Scenes {
     MAIN_MENU,
     HIGHSCORES,
@@ -17,17 +13,9 @@ enum Scenes {
     ASK_REGISTER,
     LOAD_REGISTER,
     REGISTER_MENU,
+    ASK_GAMEPLAY,
+    ASK_SECOND_LOGIN,
     GAMEPLAY
-};
-
-struct Collider{
-    mlib::Vec2 P1 = {0.0f,0.0f};
-    mlib::Vec2 P2 = {16.0f ,16.0f};
-};
-
-struct Asteroid {
-    Collider collider;
-    AsteroidType type;
 };
 
 struct Game {

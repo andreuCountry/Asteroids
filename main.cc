@@ -21,7 +21,7 @@ esat::Vec3* points = (esat::Vec3*) malloc (numPoints * sizeof(esat::Vec3));
 
 Game currentGame;
 
-esat::Vec2 stickPosition, stickLoginPosition, adminSectionStickPosition;
+esat::Vec2 stickPosition, stickLoginPosition, stickSecondLoginPosition, adminSectionStickPosition;
 
 char* nickname = (char*) malloc (1);
 int nicknameLength = 0;
@@ -37,6 +37,12 @@ int userLoginLength = 0, userLoginMaxLength = 15;
 
 char* passwordLogin = (char*) malloc (1);
 int passwordLoginLength = 0, passwordLoginMaxLength = 15;
+
+char* userSecondLogin = (char*) malloc (1);
+int userSecondLoginLength = 0, userSecondLoginMaxLength = 15;
+
+char* passwordSecondLogin = (char*) malloc (1);
+int passwordSecondLoginLength = 0, passwordSecondLoginMaxLength = 15;
 
 char* birthday = (char*) malloc (1);
 int birthdayLength = 0, birthdayMaxLength = 11;
@@ -71,7 +77,7 @@ int emailEditLength = 0, emailEditMaxLength = 15;
 int creditsEdit = 0;
 int creditsMaxEdit = 999999;
 
-int currentField = 0, currentLoginField = 0, currentEditField = 0;
+int currentField = 0, currentLoginField = 0, currentEditField = 0, currentSecondLoginField = 0;
 int userId = 0;
 int positionInPage = 1;
 
@@ -179,7 +185,7 @@ bool pendingLevelChange = false;
 bool isChangingLevel = false;
 
 Asteroids* asteroids = nullptr;
-const int maxAsteroids = 180;
+const int maxAsteroids = 140;
 int activeAsteroids = 4;
 
 int pendingLevel = -1;
@@ -514,8 +520,8 @@ void InitAsteroids() {
         asteroids[i].isAlive = true;
         asteroids[i].canCollide = true;
 
-        float speedX = rand()%1000 / 1000.0f;
-        float speedY = rand()%1000 / 1000.0f;
+        float speedX = rand()%2000 / 1000.0f;
+        float speedY = rand()%2000 / 1000.0f;
 
         int mOrD = rand()%2;
 
@@ -612,6 +618,9 @@ void InitConfig() {
     // Variables que se modifican con el login
     stickLoginPosition.x = windowX / 7;
     stickLoginPosition.y = windowY / 2.5f;
+
+    stickSecondLoginPosition.x = windowX / 7;
+    stickSecondLoginPosition.y = windowY / 2.5;
 
     adminSectionStickPosition.x = windowX / 12;
     adminSectionStickPosition.y = windowY / 2.75f;
@@ -775,6 +784,16 @@ void DrawStickLoginBar() {
     }
 }
 
+void DrawStickSecondLoginBar() {
+    int c = ((esat::Time()/100.0f) - tempStickBar);
+
+    esat::DrawSetTextSize(24);
+
+    if (c % 10 != 0) {
+        esat::DrawText(stickSecondLoginPosition.x, stickSecondLoginPosition.y, "--o");
+    }
+}
+
 void ControlsDetect() {
     switch (currentGame.actualScene) {
         case Scenes::MAIN_MENU:
@@ -860,6 +879,21 @@ void ControlsDetect() {
                 currentLoginField = (currentLoginField + 1) % 3;
             }
         break;
+        case Scenes::ASK_SECOND_LOGIN:
+            DrawStickSecondLoginBar();
+
+            if (esat::IsSpecialKeyDown(esat::kSpecialKey_Tab)) {
+                if (stickSecondLoginPosition.y == windowY / 2.5f) {
+                    stickSecondLoginPosition.y = windowY / 2;
+                } else if ( stickSecondLoginPosition.y == windowY / 2) {
+                    stickSecondLoginPosition.y = windowY / 1.5f;
+                } else if (stickSecondLoginPosition.y == windowY / 1.5f){
+                    stickSecondLoginPosition.y = windowY / 2.5f;
+                }
+
+                currentSecondLoginField = (currentSecondLoginField + 1) % 3;
+            }
+        break;
         case Scenes::REGISTER_MENU:
             DrawStickBar();
 
@@ -884,9 +918,6 @@ void ControlsDetect() {
 
                 currentField = (currentField + 1) % 8;
             }
-
-        break;
-        case Scenes::GAMEPLAY:
 
         break;
     }
@@ -1290,6 +1321,79 @@ void HandleTextInputDynamic() {
     }
 }
 
+void HandleAskGameplay() {
+    if (esat::IsKeyDown('S')) {
+        currentGame.actualScene = GAMEPLAY;
+    }
+
+    if (esat::IsKeyDown('M')) {
+        currentGame.actualScene = ASK_SECOND_LOGIN;
+    }
+}
+
+void HandleSecondLogin() {
+    char character;
+
+    if (currentSecondLoginField == 0) {
+        for (character = 'A'; character <= 'Z'; character++) {
+
+            if (esat::IsKeyDown(character) && userSecondLoginLength < userSecondLoginMaxLength) {
+                userSecondLoginLength++;
+                userSecondLogin = (char*) realloc(userSecondLogin, userSecondLoginLength + 1);
+                *(userSecondLogin+userSecondLoginLength - 1) = character;
+                *(userSecondLogin+userSecondLoginLength) = '\0';
+            }
+        }
+
+        for (character = 'a'; character <= 'z'; character++) {
+
+            if (esat::IsKeyDown(character) && userSecondLoginLength < userSecondLoginMaxLength) {
+                userSecondLoginLength++;
+                userSecondLogin = (char*) realloc(userSecondLogin, userSecondLoginLength + 1);
+                *(userSecondLogin+userSecondLoginLength - 1) = character;
+                *(userSecondLogin+userSecondLoginLength) = '\0';
+            }
+        }
+
+        if ((esat::IsSpecialKeyDown(esat::kSpecialKey_Delete)) &&
+            userSecondLoginLength > 0) {
+            userSecondLoginLength--;
+            *(userSecondLogin + userSecondLoginLength) = '\0';
+        }
+    }
+
+    if (currentSecondLoginField == 1) {
+        for (int i = 32; i <= 126; i++) {
+            if (esat::IsKeyDown(i)  && passwordSecondLoginLength < passwordSecondLoginMaxLength) {
+                passwordSecondLoginLength++;
+                passwordSecondLogin = (char*) realloc(passwordSecondLogin, passwordSecondLoginLength + 1);
+                *(passwordSecondLogin+passwordSecondLoginLength - 1) = (char)i;
+                *(passwordSecondLogin+passwordSecondLoginLength) = '\0';
+            }
+        }
+
+        if ((esat::IsSpecialKeyDown(esat::kSpecialKey_Delete))
+            && passwordSecondLoginLength > 0) {
+            passwordSecondLoginLength--;
+            *(passwordSecondLogin+passwordSecondLoginLength) = '\0';
+        }
+    }
+
+    if (currentSecondLoginField == 2) {
+        if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
+            bool optionalUser = CheckOptionalUser();
+
+            if (optionalUser) {
+                currentGame.actualScene = GAMEPLAY;
+            }
+        }
+    }
+
+    if (esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) {
+        currentGame.actualScene = ASK_GAMEPLAY;
+    }
+}
+
 void HandleLogin() {
     char character;
 
@@ -1356,7 +1460,7 @@ void HandleLogin() {
 
             } else {
                 if (optionalUser) {
-                    currentGame.actualScene = GAMEPLAY;
+                    currentGame.actualScene = ASK_GAMEPLAY;
                 }
             }
         }
@@ -1364,12 +1468,6 @@ void HandleLogin() {
 
     if (esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) {
         currentGame.actualScene = ASK_REGISTER;
-    }
-}
-
-void HandleShipMovement() {
-    if (esat::IsKeyDown('D')) {
-        // move ship into right
     }
 }
 
@@ -1429,7 +1527,7 @@ void HandleAdminSection() {
     }
 
     if (esat::IsKeyDown('P')) {
-        currentGame.actualScene = GAMEPLAY;
+        currentGame.actualScene = ASK_GAMEPLAY;
     }
 
     if (esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) {
@@ -1781,6 +1879,25 @@ void DrawRegisterMenu() {
     DrawBack();
 }
 
+void DrawAskGameplay() {
+
+    esat::DrawSetFillColor(255, 255, 255, 255);
+
+    int c = ((esat::Time()/100.0f) - tempAskRegister);
+
+    if (c % 10 != 0) {
+        esat::DrawSetTextSize(36);
+        esat::DrawText(windowX / 2.5f, windowY / 4, "MODE?");
+    }
+
+    esat::DrawSetTextSize(24);
+    esat::DrawText(windowX / 6, windowY / 1.5f, "SINGLE (S)");
+    esat::DrawText(windowX / 1.5f, windowY / 1.5f, "MULTIPLAYER (M)");
+
+    esat::DrawSetTextSize(25);
+    esat::DrawText(windowX / 2.4f, windowY - 50, "BACK (o---)");
+}
+
 void DrawAdminSection() {
     esat::DrawSetFillColor(255, 255, 255, 255);
 
@@ -1802,6 +1919,31 @@ void DrawAdminSection() {
 
     esat::DrawText(windowX - 150, windowY / 7, "PLAY (P)");
 
+}
+
+void DrawAskSecondLogin() {
+    esat::DrawSetFillColor(255, 255, 255, 255);
+
+    esat::DrawSetTextSize(40);
+    esat::DrawText(windowX / 4, windowY / 4, "LOGIN SECOND USER");
+
+    esat::DrawSetTextSize(24);
+    esat::DrawText(windowX / 3.5f, windowY / 2.5f, "USER: ");
+    esat::DrawText(windowX / 3.5f, windowY / 2, "PASSWORD: ");
+    esat::DrawText(windowX / 2.5f, windowY / 1.5f, "PLAY.....");
+
+    // nickname
+    esat::DrawText(windowX / 2, windowY / 2.5f, userSecondLogin);
+
+    // tema de password
+    char hiddenPass[50] = "";
+    for(int i=0; i<passwordSecondLoginLength; i++) *(hiddenPass+i) = '*';
+    hiddenPass[passwordSecondLoginLength] = '\0';
+
+    esat::DrawSetTextSize(40);
+    esat::DrawText(windowX / 2, windowY / 1.9f, hiddenPass);
+
+    DrawBack();
 }
 
 void DrawEditSection() {
@@ -2012,7 +2154,21 @@ void UpdateShoots() {
 
                 // para sacar colisiones necesitamos un punto central fijo que se mueva dinamicamente
             }
+
+            if (shipPlayer.shoots[i].points[0].x > windowX) {
+                shipPlayer.shoots[i].points[0].x = 0;
+            } else if (shipPlayer.shoots[i].points[0].x < 0) {
+                shipPlayer.shoots[i].points[0].x = windowX;
+            }
+
+            if (shipPlayer.shoots[i].points[0].y > windowY) {
+                shipPlayer.shoots[i].points[0].y = 0;
+            } else if (shipPlayer.shoots[i].points[0].y < 0) {
+                shipPlayer.shoots[i].points[0].y = windowY;
+            }
         }
+
+
     }
 }
 
@@ -2244,10 +2400,17 @@ int esat::main(int argc, char **argv) {
                 DrawRegisterMenu();
                 HandleTextInputDynamic();
             break;
+            case Scenes::ASK_GAMEPLAY:
+
+                DrawAskGameplay();
+                HandleAskGameplay();
+            break;
+            case Scenes::ASK_SECOND_LOGIN:
+                DrawAskSecondLogin();
+                HandleSecondLogin();
+            break;
             case Scenes::GAMEPLAY:
  
-                HandleShipMovement();
-
                 // control de paso de nivel;
                 pendingLevelChange = true;
  
@@ -2389,8 +2552,8 @@ int esat::main(int argc, char **argv) {
 
                 if (esat::IsKeyPressed('W')) {
                     shipPlayer.acceleration = {
-                        cosf(shipPlayer.angle) * 0.06f,
-                        sinf(shipPlayer.angle) * 0.06f
+                        cosf(shipPlayer.angle) * 0.1f,
+                        sinf(shipPlayer.angle) * 0.1f
                     };
 
                     if (shipPlayer.speed.x + shipPlayer.acceleration.x > maxSpeed) {
