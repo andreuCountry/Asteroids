@@ -13,7 +13,7 @@
 double current_time, last_time;
 int fps = 60;
 
-float windowX = 800.0f, windowY = 608.0f, tempTime = 0, tempAskRegister = 0, tempStickBar = 0;
+float windowX = 800.0f, windowY = 608.0f, tempTime = 0, tempAskRegister = 0, tempInmortality = 0, tempStickBar = 0;
 
 const int numPoints = 5, pi = 3.141592f;
 
@@ -97,6 +97,8 @@ struct User {
     int puntuation;
 };
 
+int puntuationInGame = 0;
+
 // Globales para ir byte por byte en los bloques de memoria para copiar su info y estructurarla
 #define OFFSET_ID        0
 #define OFFSET_NICK      4
@@ -122,7 +124,7 @@ struct Shoot {
 
 struct Ship {
     esat::Vec3* points;
-    int lifes = 3;
+    int lifes = 4;
     bool isAlive;
     esat::Vec3 centralPoint;
     esat::Vec2 speed = {0.0f, 0.0f};
@@ -1323,6 +1325,8 @@ void HandleTextInputDynamic() {
 
 void HandleAskGameplay() {
     if (esat::IsKeyDown('S')) {
+        timeInmortality = 3;
+        shipPlayer.inmortality = true;
         currentGame.actualScene = GAMEPLAY;
     }
 
@@ -1384,6 +1388,8 @@ void HandleSecondLogin() {
             bool optionalUser = CheckOptionalUser();
 
             if (optionalUser) {
+                timeInmortality = 3;
+                shipPlayer.inmortality = true;
                 currentGame.actualScene = GAMEPLAY;
             }
         }
@@ -2013,6 +2019,9 @@ esat::Mat3 UpdateFigurita(esat::Vec2 scale, float angle, esat::Vec2 whereMove) {
 void DrawFigurita(esat::Mat3 m) {
 
     float points[numPoints * 2];
+
+    int c = ((esat::Time()/100.0f) - tempInmortality);
+        
     esat::DrawSetFillColor(0, 0, 0, 0);
     esat::DrawSetStrokeColor(255, 255, 255, 255);
 
@@ -2022,7 +2031,20 @@ void DrawFigurita(esat::Mat3 m) {
         points[i*2] = tmp.x;
         points[i*2+1] = tmp.y;
     }
-    esat::DrawSolidPath(points, numPoints, true);
+
+    // check inmortality values
+    if (shipPlayer.inmortality) {
+        if (c % 2 != 0) {
+            esat::DrawSolidPath(points, numPoints, true);
+        }
+
+        if (timeInmortality <= 0) {
+            shipPlayer.inmortality = false;
+        }
+    } else {
+        esat::DrawSolidPath(points, numPoints, true);
+    }
+    
     
     // dibujar vector director 
     /*esat::DrawLine(
@@ -2338,6 +2360,40 @@ void CheckInmortality(float deltaTime) {
     }
 }
 
+void DrawPuntuation() {
+    char score[6];
+	// Puntuacion
+    esat::DrawSetTextSize(20);
+	esat::DrawSetFillColor(255, 255, 255);
+	itoa(puntuationInGame + 1000000, score, 10);
+
+    esat::DrawText(40, 50, score + 1);
+}
+
+void DrawLifes(esat::Mat3 m) {
+    float points[numPoints * 2];
+
+    esat::DrawSetFillColor(0, 0, 0, 0);
+    esat::DrawSetStrokeColor(255, 255, 255, 255);
+
+    for (int i = 0; i < numPoints; i++) {
+        // Necesitamos esto para transformar los Mat3 en Vec3, para dibujar
+        esat::Vec3 tmp = esat::Mat3TransformVec3(m, shipPlayer.points[i]);
+        points[i*2] = tmp.x;
+        points[i*2+1] = tmp.y;
+    }
+
+    esat::DrawSolidPath(points, numPoints, true);
+}
+
+void SpaceJump() {
+    timeInmortality = 3;
+    shipPlayer.inmortality = true;
+
+    shipPlayer.centralPoint.x = (float) (rand()%800);
+    shipPlayer.centralPoint.y = (float) (rand()%608);
+}
+
 int esat::main(int argc, char **argv) {
 
     esat::WindowInit(windowX, windowY);
@@ -2348,6 +2404,7 @@ int esat::main(int argc, char **argv) {
     InitShip();
 
     esat::Mat3 matriz = UpdateFigurita({1.0f, 1.0f}, 0.0f, {0.0f, 0.0f});
+    esat::Mat3 matrizLittle = UpdateFigurita({1.0f, 1.0f}, 0.0f, {0.0f, 0.0f});
 
     while (esat::WindowIsOpened() && !esat::IsSpecialKeyDown(esat::kSpecialKey_Escape)) {
         last_time = esat::Time();
@@ -2363,6 +2420,11 @@ int esat::main(int argc, char **argv) {
                 UpdateAsteroids();
                 if (!isChangingLevel) {
                     DrawAsteroids();
+                }
+
+                // Debug
+                if (esat::IsSpecialKeyDown(esat::kSpecialKey_F1)) {
+                    currentGame.actualScene = GAMEPLAY;
                 }
             break;
             case Scenes::HIGHSCORES:
@@ -2420,7 +2482,9 @@ int esat::main(int argc, char **argv) {
                 UpdateGame();
 
                 if (esat::IsSpecialKeyDown(esat::kSpecialKey_Space)) {
-                    FireShoot();
+                    if (!shipPlayer.inmortality) {
+                        FireShoot();
+                    }
                 }
 
                 UpdateShoots();
@@ -2594,9 +2658,25 @@ int esat::main(int argc, char **argv) {
                     shipPlayer.centralPoint.y = windowY;
                 }
 
+                if (esat::IsKeyDown('G')) {
+                    SpaceJump();
+                }
+
                 matriz = UpdateFigurita({1.0f, 1.0f}, shipPlayer.angle, {shipPlayer.centralPoint.x, shipPlayer.centralPoint.y});
 
                 DrawFigurita(matriz);
+                DrawPuntuation();
+
+                for (int i = 0; i < shipPlayer.lifes - 1; i++) {
+
+                    matrizLittle = UpdateFigurita({1.0f, 1.0f}, -3.14f / 2, {40.0f * (i + 1), 90.0f});
+                    DrawLifes(matrizLittle);
+                }
+                /*if (userId2 != 0) {
+                    DrawPuntuation();
+                    DrawLifes2();
+                }*/
+
                 DrawShoots();
                 if (!isChangingLevel) {
                     DrawAsteroids();
