@@ -137,6 +137,7 @@ struct Ship {
 };
 
 float timeInmortality = 3.0f;
+float timeDeadShip = 3.0f;
 
 User user, userLooked;
 User* usersToShow = nullptr;
@@ -176,6 +177,7 @@ struct Asteroids {
     bool isAlive;
     int numVertices;
     bool canCollide = false;
+    
 };
 
 int actualLevel, totalAsteroidsPerLevels;
@@ -2058,7 +2060,9 @@ void DrawFigurita(esat::Mat3 m) {
 void UpdateGame() {
 
     if (pendingLevelChange) {
-
+        // set inmortality again
+        timeInmortality = 3;
+        shipPlayer.inmortality = true;
 
         pendingLevelChange = false;
 
@@ -2313,6 +2317,7 @@ void ActivateNewAsteroid(Asteroids asteroid) {
 void BrokeAsteroid(Asteroids* asteroid_broke) {
 
     if (asteroid_broke->level == AsteroidsLevel::LEVEL_1) {
+        puntuationInGame += 100;
         asteroid_broke->isAlive = false;
         asteroid_broke->canCollide = false;
         return;
@@ -2320,9 +2325,11 @@ void BrokeAsteroid(Asteroids* asteroid_broke) {
 
     switch (asteroid_broke->level) {
         case AsteroidsLevel::LEVEL_3:
+            puntuationInGame += 20;
             asteroid_broke->level = LEVEL_2;
         break;
         case AsteroidsLevel::LEVEL_2:
+            puntuationInGame += 50;
             asteroid_broke->level = LEVEL_1;
         break;
     }
@@ -2394,6 +2401,41 @@ void SpaceJump() {
     shipPlayer.centralPoint.y = (float) (rand()%608);
 }
 
+void CheckLifes() {
+    if (puntuationInGame % 10000 == 0 && puntuationInGame != 0) {
+        shipPlayer.lifes++;
+    }
+
+    if (shipPlayer.lifes == 0) {
+        currentGame.actualScene = HIGHSCORES;
+        shipPlayer.lifes = 3;
+    }
+}
+
+void DrawDeadShip(Ship shipCopy, float deltaTime) {
+    
+    if (timeDeadShip > 0) {
+        timeDeadShip += deltaTime;
+
+        esat::DrawSetFillColor(0, 0, 0, 0);
+        esat::DrawSetStrokeColor(255, 255, 255, 255);
+
+        for (int i = 0; i < 3; i++) {
+            esat::DrawLine(
+                shipCopy.centralPoint.x - (10 * i), 
+                shipCopy.centralPoint.y - (10 * i), 
+                shipCopy.centralPoint.x + (10 * i), 
+                shipCopy.centralPoint.y + (10 * i)
+            );
+        }
+
+    }
+}
+
+void MoveDeadShip() {
+    
+}
+
 int esat::main(int argc, char **argv) {
 
     esat::WindowInit(windowX, windowY);
@@ -2424,6 +2466,9 @@ int esat::main(int argc, char **argv) {
 
                 // Debug
                 if (esat::IsSpecialKeyDown(esat::kSpecialKey_F1)) {
+                    // test inmortality
+                    timeInmortality = 3;
+                    shipPlayer.inmortality = true;
                     currentGame.actualScene = GAMEPLAY;
                 }
             break;
@@ -2596,7 +2641,10 @@ int esat::main(int argc, char **argv) {
                 
                 if (collision && !shipPlayer.inmortality) {
                     RestLifes();
+                    timeDeadShip = 2;
                 }
+
+                DrawDeadShip(shipPlayer, (current_time - last_time) / 1000 * (fps * 0.6f));
 
                 CheckInmortality((current_time - last_time) / 1000 * (fps * 0.6f));
 
@@ -2666,6 +2714,9 @@ int esat::main(int argc, char **argv) {
 
                 DrawFigurita(matriz);
                 DrawPuntuation();
+
+                // handle lifes and all logic around theme
+                CheckLifes();
 
                 for (int i = 0; i < shipPlayer.lifes - 1; i++) {
 
