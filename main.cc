@@ -134,6 +134,8 @@ struct Ship {
     Shoot* shoots;
     int numberShoots = 4;
     bool inmortality = false;
+    esat::Vec3 deadZone;
+    bool showDeadZone = false;
 };
 
 float timeInmortality = 3.0f;
@@ -2407,34 +2409,57 @@ void CheckLifes() {
     }
 
     if (shipPlayer.lifes == 0) {
+        // Load users too, to ordered users
+        LoadUsersOrdered();
         currentGame.actualScene = HIGHSCORES;
         shipPlayer.lifes = 3;
     }
 }
 
-void DrawDeadShip(Ship shipCopy, float deltaTime) {
-    
-    if (timeDeadShip > 0) {
+void DrawDeadShip(float deltaTime, Ship shipCopy, esat::Mat3 m) {
+    if (timeDeadShip > 0 && shipPlayer.showDeadZone) {
         timeDeadShip += deltaTime;
+
+        float points[5 * 2];
 
         esat::DrawSetFillColor(0, 0, 0, 0);
         esat::DrawSetStrokeColor(255, 255, 255, 255);
 
-        for (int i = 0; i < 3; i++) {
-            esat::DrawLine(
-                shipCopy.centralPoint.x - (10 * i), 
-                shipCopy.centralPoint.y - (10 * i), 
-                shipCopy.centralPoint.x + (10 * i), 
-                shipCopy.centralPoint.y + (10 * i)
-            );
+        m = esat::Mat3Multiply(esat::Mat3Translate(shipCopy.deadZone.x, shipCopy.deadZone.y), m);
+        //m = esat::Mat3Multiply(esat::Mat3Rotate(1.0f), m);
+
+        for (int i = 0; i < 5; i++) {
+            // Necesitamos esto para transformar los Mat3 en Vec3, para dibujar
+            esat::Vec3 tmp = esat::Mat3TransformVec3(m, shipCopy.points[i]);
+            points[i*2] = tmp.x;
+            points[i*2+1] = tmp.y;
         }
 
+        esat::DrawSolidPath(points, 5, true);
+
+    } else {
+        shipPlayer.showDeadZone = false;
     }
 }
 
-void MoveDeadShip() {
-    
-}
+/*void MoveDeadShip(Ship shipCopy, esat::Mat3 m) {
+    if (timeDeadShip > 0 && shipPlayer.showDeadZone) {
+
+        float points[5 * 2];
+
+        m = esat::Mat3Multiply(esat::Mat3Rotate(esat::Time() * 0.001f), m);
+
+        for (int i = 0; i < 3; i++) {
+
+            esat::Vec3 tmp = esat::Mat3TransformVec3(m, shipCopy.points[i]);
+
+            points[i*2] = tmp.x;
+            points[i*2+1] = tmp.y;
+        }
+
+        esat::DrawSolidPath(points, 5, true);
+    }
+}*/
 
 int esat::main(int argc, char **argv) {
 
@@ -2447,6 +2472,8 @@ int esat::main(int argc, char **argv) {
 
     esat::Mat3 matriz = UpdateFigurita({1.0f, 1.0f}, 0.0f, {0.0f, 0.0f});
     esat::Mat3 matrizLittle = UpdateFigurita({1.0f, 1.0f}, 0.0f, {0.0f, 0.0f});
+    esat::Mat3 matrizDead = UpdateFigurita({1.0f, 1.0f}, 0.0f, {0.0f, 0.0f});
+    Ship shipCopy;
 
     while (esat::WindowIsOpened() && !esat::IsSpecialKeyDown(esat::kSpecialKey_Escape)) {
         last_time = esat::Time();
@@ -2639,12 +2666,19 @@ int esat::main(int argc, char **argv) {
                     }
                 }
                 
+                // TO_DO separate logic into inmortality and show dead ship
                 if (collision && !shipPlayer.inmortality) {
+                    shipPlayer.deadZone = shipPlayer.centralPoint;
+                    matrizDead = matriz;
+                    // copy matriz
+                    shipCopy = shipPlayer;
+                    shipPlayer.showDeadZone = true;
                     RestLifes();
                     timeDeadShip = 2;
                 }
 
-                DrawDeadShip(shipPlayer, (current_time - last_time) / 1000 * (fps * 0.6f));
+                DrawDeadShip((current_time - last_time) / 1000 * (fps * 0.6f), shipCopy, matrizDead);
+                //MoveDeadShip(shipCopy, matrizDead);
 
                 CheckInmortality((current_time - last_time) / 1000 * (fps * 0.6f));
 
