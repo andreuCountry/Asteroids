@@ -138,6 +138,14 @@ struct Ship {
     bool showDeadZone = false;
 };
 
+struct ShipFragment {
+    esat::Vec2 point1;
+    esat::Vec2 point2;
+    float angle;
+};
+
+ShipFragment* fragments = (ShipFragment*) malloc(5 * sizeof(ShipFragment));
+
 float timeInmortality = 3.0f;
 float timeDeadShip = 3.0f;
 
@@ -268,6 +276,7 @@ void InitShip() {
 
     shipPlayer.centralPoint = {windowX / 2, windowY / 2, 1.0f};
     shipPlayer.points = points;
+    shipPlayer.isAlive = true;
 
     shipPlayer.shoots = (Shoot*) malloc(sizeof(Shoot) * 4);
 
@@ -2037,7 +2046,7 @@ void DrawFigurita(esat::Mat3 m) {
     }
 
     // check inmortality values
-    if (shipPlayer.inmortality) {
+    if (shipPlayer.inmortality && shipPlayer.isAlive) {
         if (c % 2 != 0) {
             esat::DrawSolidPath(points, numPoints, true);
         }
@@ -2045,7 +2054,7 @@ void DrawFigurita(esat::Mat3 m) {
         if (timeInmortality <= 0) {
             shipPlayer.inmortality = false;
         }
-    } else {
+    } else if (shipPlayer.isAlive) {
         esat::DrawSolidPath(points, numPoints, true);
     }
     
@@ -2349,7 +2358,6 @@ void RestLifes() {
         printf("Lifes: [%d] \n", shipPlayer.lifes);
         printf("toque \n");
         shipPlayer.lifes--;
-        SpawnPlayer();
         timeInmortality = 3.0f;
 
     }
@@ -2365,6 +2373,25 @@ void CheckInmortality(float deltaTime) {
 
         if (timeInmortality <= 0) {
             shipPlayer.inmortality = false;
+        }
+    }
+}
+
+void CheckAnimatedDead(float deltaTime) {
+    if (shipPlayer.showDeadZone) {
+
+        timeDeadShip += deltaTime;
+
+        if (timeDeadShip <= 0) {
+
+            shipPlayer.isAlive = true;
+            SpawnPlayer();
+
+            shipPlayer.inmortality = true;
+            timeInmortality = 2.0f;
+
+            shipPlayer.showDeadZone = false;
+            timeDeadShip = 0.0f;
         }
     }
 }
@@ -2416,50 +2443,53 @@ void CheckLifes() {
     }
 }
 
-void DrawDeadShip(float deltaTime, Ship shipCopy, esat::Mat3 m) {
+void InitFragments(Ship shipCopy) {
+    for (int i = 0; i < 5; i++) {
+        // siguiente vertice al que apunta
+        int next = (i + 1) % 5;
+
+        fragments[i].point1 = {
+            shipCopy.points[i].x + shipCopy.centralPoint.x,
+            shipCopy.points[i].y + shipCopy.centralPoint.y
+        };
+
+        fragments[i].point2 = {
+            shipCopy.points[next].x + shipCopy.centralPoint.x,
+            shipCopy.points[next].y + shipCopy.centralPoint.y
+        };
+
+        // usamos radianes para el angulo esta vez
+        fragments[i].angle = (rand() % 360) * 3.1416f / 180.0f;
+    }
+}
+
+void DrawDeadShip(float deltaTime) {
     if (timeDeadShip > 0 && shipPlayer.showDeadZone) {
         timeDeadShip += deltaTime;
-
-        float points[5 * 2];
 
         esat::DrawSetFillColor(0, 0, 0, 0);
         esat::DrawSetStrokeColor(255, 255, 255, 255);
 
-        m = esat::Mat3Multiply(esat::Mat3Translate(shipCopy.deadZone.x, shipCopy.deadZone.y), m);
-        //m = esat::Mat3Multiply(esat::Mat3Rotate(1.0f), m);
+        float speed = 30.0f;
 
-        for (int i = 0; i < 5; i++) {
-            // Necesitamos esto para transformar los Mat3 en Vec3, para dibujar
-            esat::Vec3 tmp = esat::Mat3TransformVec3(m, shipCopy.points[i]);
-            points[i*2] = tmp.x;
-            points[i*2+1] = tmp.y;
+         for (int i = 0; i < 5; i++) {
+
+            fragments[i].point1.x += cosf(fragments[i].angle) * deltaTime * speed;
+            fragments[i].point1.y += sinf(fragments[i].angle) * deltaTime * speed;
+
+            fragments[i].point2.x += cosf(fragments[i].angle) * deltaTime * speed;
+            fragments[i].point2.y += sinf(fragments[i].angle) * deltaTime * speed;
+
+            float points[4] = {
+                fragments[i].point1.x, fragments[i].point1.y,
+                fragments[i].point2.x, fragments[i].point2.y
+            };
+
+            esat::DrawSolidPath(points, 2);
         }
 
-        esat::DrawSolidPath(points, 5, true);
-
-    } else {
-        shipPlayer.showDeadZone = false;
     }
 }
-
-/*void MoveDeadShip(Ship shipCopy, esat::Mat3 m) {
-    if (timeDeadShip > 0 && shipPlayer.showDeadZone) {
-
-        float points[5 * 2];
-
-        m = esat::Mat3Multiply(esat::Mat3Rotate(esat::Time() * 0.001f), m);
-
-        for (int i = 0; i < 3; i++) {
-
-            esat::Vec3 tmp = esat::Mat3TransformVec3(m, shipCopy.points[i]);
-
-            points[i*2] = tmp.x;
-            points[i*2+1] = tmp.y;
-        }
-
-        esat::DrawSolidPath(points, 5, true);
-    }
-}*/
 
 int esat::main(int argc, char **argv) {
 
@@ -2472,7 +2502,6 @@ int esat::main(int argc, char **argv) {
 
     esat::Mat3 matriz = UpdateFigurita({1.0f, 1.0f}, 0.0f, {0.0f, 0.0f});
     esat::Mat3 matrizLittle = UpdateFigurita({1.0f, 1.0f}, 0.0f, {0.0f, 0.0f});
-    esat::Mat3 matrizDead = UpdateFigurita({1.0f, 1.0f}, 0.0f, {0.0f, 0.0f});
     Ship shipCopy;
 
     while (esat::WindowIsOpened() && !esat::IsSpecialKeyDown(esat::kSpecialKey_Escape)) {
@@ -2669,18 +2698,18 @@ int esat::main(int argc, char **argv) {
                 // TO_DO separate logic into inmortality and show dead ship
                 if (collision && !shipPlayer.inmortality) {
                     shipPlayer.deadZone = shipPlayer.centralPoint;
-                    matrizDead = matriz;
-                    // copy matriz
-                    shipCopy = shipPlayer;
                     shipPlayer.showDeadZone = true;
+                    shipCopy = shipPlayer;
+                    shipPlayer.isAlive = false;
+                    InitFragments(shipCopy);
                     RestLifes();
                     timeDeadShip = 2;
                 }
 
-                DrawDeadShip((current_time - last_time) / 1000 * (fps * 0.6f), shipCopy, matrizDead);
-                //MoveDeadShip(shipCopy, matrizDead);
+                DrawDeadShip((current_time - last_time) / 1000 * (fps * 0.6f));
 
                 CheckInmortality((current_time - last_time) / 1000 * (fps * 0.6f));
+                CheckAnimatedDead((current_time - last_time) / 1000 * (fps * 0.6f));
 
                 // all this shit is going into handle hell function
                 // think about + and - acceleration
