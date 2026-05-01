@@ -144,7 +144,20 @@ struct ShipFragment {
     float angle;
 };
 
+struct AsteroidFragment {
+    esat::Vec2 point1;
+    float angle;
+    float speed;
+    float life;
+    bool isAlive = false;
+};
+
 ShipFragment* fragments = (ShipFragment*) malloc(5 * sizeof(ShipFragment));
+AsteroidFragment* fragmentsAsteroids = (AsteroidFragment*) malloc(12 * sizeof(AsteroidFragment));
+
+const int kCirclePoints = 20;
+
+esat::Vec3* g_circle = (esat::Vec3*) malloc(kCirclePoints * sizeof(esat::Vec3));
 
 float timeInmortality = 3.0f;
 float timeDeadShip = 3.0f;
@@ -183,11 +196,20 @@ struct Asteroids {
     AsteroidsType type;
     esat::Vec3 *vertices;
     esat::Vec3 centralPoint;
+    esat::Vec3 deadZone;
     esat::Vec2 direction;
     bool isAlive;
     int numVertices;
     bool canCollide = false;
-    
+};
+
+struct UFO {
+    bool isAlive;
+    int numVertices;
+    bool canCollide = false;
+    esat::Vec3 *vertices;
+    esat::Vec3 centralPoint;
+    esat::Vec2 direction;
 };
 
 int actualLevel, totalAsteroidsPerLevels;
@@ -260,6 +282,21 @@ void VertsAsteroid4(esat::Vec3 *vertices){
     *(vertices + 8) = {-0.63f, -0.13f, 1.0f};
     *(vertices + 9) = {-0.51f, 0.00f, 1.0f};
     *(vertices + 10) = {-0.64f, 0.10f, 1.0f};
+}
+
+void VertsUFO(esat::Vec3 *vertices) {
+    *(vertices) = {2.0f, -1.0f, 1.0f};
+    *(vertices + 1) = {-2.0f, -1.0f, 1.0f};
+    *(vertices + 2) = {-5.0f, 1.0f, 1.0f};
+    *(vertices + 3) = {5.0f, 1.0f, 1.0f};
+    *(vertices + 4) = {2.0f, 3.0f, 1.0f};
+    *(vertices + 5) = {-2.0f, 3.0f, 1.0f};
+    *(vertices + 6) = {-5.0f, 1.0f, 1.0f};
+    *(vertices + 7) = {-2.0f, -1.0f, 1.0f};
+    *(vertices + 8) = {-1.0f, -3.0f, 1.0f};
+    *(vertices + 9) = {1.0f, -3.0f, 1.0f};
+    *(vertices + 10) = {2.0f, -1.0f, 1.0f};
+    *(vertices + 11) = {5.0f, 1.0f, 1.0f};
 }
 
 float DegreeToRadians(float degree) {
@@ -620,6 +657,16 @@ void LevelConfig(int level) {
     CalculateAsteroidsPerLevel(level);
 }
 
+void InitCircle() {
+    float angle = 6.283185f / (float)kCirclePoints;
+
+    for (int i = 0; i < kCirclePoints; ++i) {
+        g_circle[i].x = cosf(angle * i);
+        g_circle[i].y = sinf(angle * i);
+        g_circle[i].z = 1.0f;
+    }
+}
+
 void InitConfig() {
 
     esat::DrawSetTextFont("./Recursos/Fuentes/horrendo.ttf");
@@ -650,6 +697,9 @@ void InitConfig() {
     asteroids = (Asteroids*)malloc(sizeof(Asteroids) * maxAsteroids);
     LevelConfig(actualLevel);
     InitAsteroids();
+
+    // particulitas de los asteroids cuanto palman
+    InitCircle();
 }
 
 void ShowPlayersAdminSection() {
@@ -2230,7 +2280,7 @@ bool CollisionDetected(esat::Vec2 point1, esat::Vec2 point2, esat::Vec2 point3, 
 
     float divisor = CrossProduct(vectorDirector1, vectorDirector2);
 
-    // checkeo que se nos lia
+    // checkeo que se nos lia, TO_DO check better 0, inusual to be 0 as fuck
     if (divisor == 0.0f) {
         return false;
     }
@@ -2491,6 +2541,74 @@ void DrawDeadShip(float deltaTime) {
     }
 }
 
+void SpawnAsteroidParticles(esat::Vec2 center) {
+
+    for (int i = 0; i < 12; i++) {
+
+        fragmentsAsteroids[i].point1 = center;
+
+        float angle = (rand() % 360) * 3.1416f / 180.0f;
+
+        fragmentsAsteroids[i].angle = angle;
+        fragmentsAsteroids[i].speed = 50.0f;
+        fragmentsAsteroids[i].life = 1.5f;
+
+        fragmentsAsteroids[i].isAlive = true;
+    }
+}
+
+void UpdateParticles(float deltaTime) {
+
+    for (int i = 0; i < 12; i++) {
+
+        if (!fragmentsAsteroids[i].isAlive) continue;
+
+        fragmentsAsteroids[i].point1.x += cosf(fragmentsAsteroids[i].angle) * fragmentsAsteroids[i].speed * deltaTime;
+        fragmentsAsteroids[i].point1.y += sinf(fragmentsAsteroids[i].angle) * fragmentsAsteroids[i].speed * deltaTime;
+
+        fragmentsAsteroids[i].life += deltaTime;
+        // printf("[%f] \n", fragmentsAsteroids[i].life);
+
+        if (fragmentsAsteroids[i].life <= 0) {
+            fragmentsAsteroids[i].isAlive = false;
+        }
+    }
+}
+
+void DrawParticles() {
+
+    esat::Vec2 pointsFlex[20];
+
+    for (int i = 0; i < 12; i++) {
+
+        if (!fragmentsAsteroids[i].isAlive) continue;
+
+        esat::Mat3 m = esat::Mat3Identity();
+
+        m = esat::Mat3Multiply(esat::Mat3Scale(2.0f, 2.0f), m);
+
+        esat::Vec2 scale = {2.0f, 2.0f};
+
+        m = esat::Mat3Multiply(
+            esat::Mat3Translate(
+                fragmentsAsteroids[i].point1.x,
+                fragmentsAsteroids[i].point1.y
+            ),
+            m
+        );
+
+        for (int j = 0; j < 20; j++) {
+
+            esat::Vec3 tmp = esat::Mat3TransformVec3(m, g_circle[j]);
+
+            pointsFlex[j] = {tmp.x, tmp.y};
+        }
+
+        esat::DrawSetFillColor(255, 255, 255, 255);
+        esat::DrawSolidPath(&pointsFlex[0].x, 20);
+    }
+}
+
 int esat::main(int argc, char **argv) {
 
     esat::WindowInit(windowX, windowY);
@@ -2503,6 +2621,8 @@ int esat::main(int argc, char **argv) {
     esat::Mat3 matriz = UpdateFigurita({1.0f, 1.0f}, 0.0f, {0.0f, 0.0f});
     esat::Mat3 matrizLittle = UpdateFigurita({1.0f, 1.0f}, 0.0f, {0.0f, 0.0f});
     Ship shipCopy;
+
+    bool multiplayer = false;
 
     while (esat::WindowIsOpened() && !esat::IsSpecialKeyDown(esat::kSpecialKey_Escape)) {
         last_time = esat::Time();
@@ -2563,10 +2683,14 @@ int esat::main(int argc, char **argv) {
 
                 DrawAskGameplay();
                 HandleAskGameplay();
+
+                multiplayer = false;
             break;
             case Scenes::ASK_SECOND_LOGIN:
                 DrawAskSecondLogin();
                 HandleSecondLogin();
+
+                multiplayer = true;
             break;
             case Scenes::GAMEPLAY:
  
@@ -2632,6 +2756,8 @@ int esat::main(int argc, char **argv) {
 
                                     if (CollisionDetected(point1, point2, point3, point4)) {
                                         collision = true;
+                                        asteroids[j].deadZone = asteroids[j].centralPoint;
+                                        SpawnAsteroidParticles({asteroids[j].deadZone.x, asteroids[j].deadZone.y});
                                         BrokeAsteroid(&asteroids[j]);
                                         break;
                                     }
@@ -2683,6 +2809,8 @@ int esat::main(int argc, char **argv) {
 
                                     if (CollisionDetected(point1, point2, point3, point4)) {
                                         shipPlayer.shoots[i].isVisible = false;
+                                        asteroids[j].deadZone = asteroids[j].centralPoint;
+                                        SpawnAsteroidParticles({asteroids[j].deadZone.x, asteroids[j].deadZone.y});
                                         BrokeAsteroid(&asteroids[j]);
                                         bulletCollision = true;
                                         break;
@@ -2707,6 +2835,9 @@ int esat::main(int argc, char **argv) {
                 }
 
                 DrawDeadShip((current_time - last_time) / 1000 * (fps * 0.6f));
+
+                UpdateParticles((current_time - last_time) / 1000 * (fps * 0.6f));
+                DrawParticles();
 
                 CheckInmortality((current_time - last_time) / 1000 * (fps * 0.6f));
                 CheckAnimatedDead((current_time - last_time) / 1000 * (fps * 0.6f));
