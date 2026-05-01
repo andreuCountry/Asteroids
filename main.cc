@@ -79,6 +79,7 @@ int creditsMaxEdit = 999999;
 
 int currentField = 0, currentLoginField = 0, currentEditField = 0, currentSecondLoginField = 0;
 int userId = 0;
+int userPlayerId1 = 0, userPlayerId2 = 0;
 int positionInPage = 1;
 
 FILE *file;
@@ -1088,7 +1089,7 @@ bool CheckUserAdmin(bool isLogin) {
     return CheckUserName(userPlayer) && CheckPassword(password);
 }
 
-bool CheckOptionalUser() {
+bool CheckOptionalUser(bool secondUserEnable) {
     file = fopen("users.dat", "rb");
     if (!file) {
         printf("Error abriendo users.dat\n");
@@ -1125,7 +1126,7 @@ bool CheckOptionalUser() {
         fread(&puntuation, sizeof(puntuation), 1, f);
 
         // Necesario para la salud mental
-        printf("id=%d", id);
+        /*printf("id=%d", id);
         printf(" nickname='%s'", tmpNick);
         printf(" userPlayer='%s'", tmpUser);
         printf(" password='%s'", tmpPass);
@@ -1135,10 +1136,16 @@ bool CheckOptionalUser() {
         printf(" isAdmin=%d", admin);
         printf(" credits=%d", credits);
         printf(" isDeleted=%d", isDeleted);
-        printf(" puntuation=%d \n", puntuation);
+        printf(" puntuation=%d \n", puntuation);*/
 
         if ((strcmp(tmpUser, userLogin) == 0) && (strcmp(tmpPass, passwordLogin) == 0)) {
             isValid = true;
+
+            if (secondUserEnable) {
+                userPlayerId2 = id;
+            } else {
+                userPlayerId1 = id;
+            }
         }
     }
 
@@ -1448,7 +1455,7 @@ void HandleSecondLogin() {
 
     if (currentSecondLoginField == 2) {
         if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
-            bool optionalUser = CheckOptionalUser();
+            bool optionalUser = CheckOptionalUser(true);
 
             if (optionalUser) {
                 timeInmortality = 3;
@@ -1514,7 +1521,7 @@ void HandleLogin() {
     if (currentLoginField == 2) {
         if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
             bool isUserAdmin = CheckUserAdmin(true);
-            bool optionalUser = CheckOptionalUser();
+            bool optionalUser = CheckOptionalUser(false);
 
             if (isUserAdmin) {
 
@@ -2480,14 +2487,65 @@ void SpaceJump() {
     shipPlayer.centralPoint.y = (float) (rand()%608);
 }
 
+void SavePuntuation(int userId1, int userId2, int newPuntuation) {
+    FILE *file = fopen("users.dat", "r+b");
+    if (file == NULL) {
+        printf("Error opening file\n");
+        return;
+    }
+
+    int id;
+
+    printf("UserId received: [%d] \n", userId1);
+
+    while (fread(&id, sizeof(int), 1, file) == 1) {
+
+        long startPos = ftell(file) - sizeof(int);
+
+        // leemos puntuatioj del user
+        fseek(file, startPos + OFFSET_PUNTUA, SEEK_SET);
+
+        int currentScore;
+        fread(&currentScore, sizeof(int), 1, file);
+
+        bool shouldUpdate = false;
+
+        printf("Id's: [%d] \n", id);
+
+        if ((id == userId1 && userId1 != 0) ||
+            (id == userId2 && userId2 != 0)) {
+
+                printf("current:  [%d]   ----  puntuation new:  [%d] \n", currentScore, newPuntuation);
+
+            if (newPuntuation > currentScore) {
+                shouldUpdate = true;
+            }
+        }
+
+        if (shouldUpdate) {
+            fseek(file, startPos + OFFSET_PUNTUA, SEEK_SET);
+            fwrite(&newPuntuation, sizeof(int), 1, file);
+        }
+
+        // saltamos
+        fseek(file, startPos + 83, SEEK_SET);
+
+    }
+
+    fclose(file);
+}
+
 void CheckLifes() {
     if (puntuationInGame % 10000 == 0 && puntuationInGame != 0) {
         shipPlayer.lifes++;
     }
 
     if (shipPlayer.lifes == 0) {
+        
+        SavePuntuation(userPlayerId1, userPlayerId2, puntuationInGame);
         // Load users too, to ordered users
         LoadUsersOrdered();
+
         currentGame.actualScene = HIGHSCORES;
         shipPlayer.lifes = 3;
     }
