@@ -208,9 +208,11 @@ struct UFO {
     bool isAlive;
     int numVertices;
     bool canCollide = false;
+    bool canMove = false;
     esat::Vec3 *vertices;
     esat::Vec3 centralPoint;
     esat::Vec2 direction;
+    bool isLittle = false;
 };
 
 int actualLevel, totalAsteroidsPerLevels;
@@ -226,6 +228,9 @@ const int maxAsteroids = 140;
 int activeAsteroids = 4;
 
 int pendingLevel = -1;
+
+UFO ufo;
+float ufoSpawnTimer;
 
 // Asteroids vertexs
 void VertsAsteroid1(esat::Vec3 *vertices){
@@ -596,6 +601,31 @@ void InitAsteroids() {
     }
 }
 
+void InitUfos() {
+    ufo.numVertices = 12;
+
+    ufo.vertices = (esat::Vec3*)malloc(sizeof(esat::Vec3) * 12);
+
+    VertsUFO(ufo.vertices);
+
+    ufo.isAlive = false;
+    ufo.canCollide = false;
+
+    float speedX = rand()%2000 / 1000.0f;
+    float speedY = rand()%2000 / 1000.0f;
+
+    int mOrD = rand()%2;
+
+    float centralPointX = -50;
+    float centralPointY = 100;
+
+    ufo.direction.x = cosf(speedX);
+    ufo.direction.y = 0;
+
+    ufo.centralPoint.x = centralPointX;
+    ufo.centralPoint.y = centralPointY;
+}
+
 void ResetConfig() {
     asteroidsV1Count = 0;
     asteroidsV2Count = 0;
@@ -698,6 +728,10 @@ void InitConfig() {
     asteroids = (Asteroids*)malloc(sizeof(Asteroids) * maxAsteroids);
     LevelConfig(actualLevel);
     InitAsteroids();
+
+    // Seteo de los UFO's y de su timer
+    InitUfos();
+    ufoSpawnTimer = 0;
 
     // particulitas de los asteroids cuanto palman
     InitCircle();
@@ -2496,10 +2530,9 @@ void SavePuntuation(int userId1, int userId2, int newPuntuation) {
 
     int id;
 
-    printf("UserId received: [%d] \n", userId1);
-
     while (fread(&id, sizeof(int), 1, file) == 1) {
 
+        // long tipo de int mas tocho
         long startPos = ftell(file) - sizeof(int);
 
         // leemos puntuatioj del user
@@ -2665,6 +2698,57 @@ void DrawParticles() {
         esat::DrawSetFillColor(255, 255, 255, 255);
         esat::DrawSolidPath(&pointsFlex[0].x, 20);
     }
+}
+
+void MoveUFO(UFO* ufo, float deltaTime) {
+    if (ufo->isAlive) {
+        if (!ufo->isLittle) {
+            ufo->centralPoint.x += 1.0f;
+        } else {
+            // logica del pequeñin
+            ufo->centralPoint.x += 1.5f;
+            // igualmente lógica de seguimiento para nuestra nave player
+        }
+
+        if (ufo->centralPoint.x - 40 > windowX) {
+            ufo->centralPoint = {-50.0f, 100.0f, 0.0f};
+            ufoSpawnTimer = 0;
+        }
+    }
+}
+
+void CheckUFOSpawn(float deltaTime) {
+
+    ufoSpawnTimer += deltaTime;
+
+    // printf("Timer:  [%f] \n", ufoSpawnTimer);
+    if (ufoSpawnTimer < -10) {
+        ufo.isAlive = true;
+        MoveUFO(&ufo, deltaTime);
+    }
+}
+
+void DrawUfo(UFO* ufo) {
+    // static con un maximo
+    if (ufo->isAlive) {
+        static float points[24 * 2];
+        esat::DrawSetFillColor(0, 0, 0, 0);
+        esat::DrawSetStrokeColor(255, 255, 255, 255);
+
+        for (int i = 0; i < ufo->numVertices; i++) {
+            
+            float scale = 8.0f;
+
+            if (ufo->isLittle) {
+                scale = 2.0f;
+            }
+
+            points[i * 2] = (ufo->vertices[i].x  * scale) + ufo->centralPoint.x;
+            points[i * 2 + 1] = (ufo->vertices[i].y * scale) + ufo->centralPoint.y;
+        }
+
+        esat::DrawSolidPath(points, ufo->numVertices, true);
+    } 
 }
 
 int esat::main(int argc, char **argv) {
@@ -2899,6 +2983,9 @@ int esat::main(int argc, char **argv) {
 
                 CheckInmortality((current_time - last_time) / 1000 * (fps * 0.6f));
                 CheckAnimatedDead((current_time - last_time) / 1000 * (fps * 0.6f));
+
+                CheckUFOSpawn((current_time - last_time) / 1000 * (fps * 0.6f));
+                DrawUfo(&ufo);
 
                 // all this shit is going into handle hell function
                 // think about + and - acceleration
