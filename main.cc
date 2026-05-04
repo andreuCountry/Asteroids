@@ -82,7 +82,7 @@ int userId = 0;
 int userPlayerId1 = 0, userPlayerId2 = 0;
 int positionInPage = 1;
 
-FILE *file;
+FILE* file, filePuntuation;
 
 struct User {
     int id;
@@ -212,7 +212,9 @@ struct UFO {
     esat::Vec3 *vertices;
     esat::Vec3 centralPoint;
     esat::Vec2 direction;
+    Shoot shoot;
     bool isLittle = false;
+    bool canShoot = false;
 };
 
 int actualLevel, totalAsteroidsPerLevels;
@@ -439,51 +441,32 @@ void GenerateSemilla() {
 }
 
 void LoadUsersOrdered() {
-    file = fopen("users.dat", "r+b");
-    if (file == NULL) {
+    FILE* filePuntuation = fopen("puntuations.dat", "r+b");
+    if (filePuntuation == NULL) {
         printf("Error opening file\n");
         return;
     }
 
-    usersOrdered = (User*) malloc(10 * 83);
+    usersOrdered = (User*) malloc(10 * 21);
     if (usersOrdered == NULL) {
         printf("No hay memoria ni jugadores para asociar puntuacion \n");
-        fclose(file);
+        fclose(filePuntuation);
         return;
     }
 
-    char* tmpNick = (char*) malloc(4);
-    char* tmpUser = (char*) malloc(15);
-    char* tmpPass = (char*) malloc(15);
-    char* tmpBirth = (char*) malloc(11);
-    char* tmpProvince = (char*) malloc(15);
-    char* tmpEmail = (char*) malloc(15);
-
-    bool admin;
-    int credits;
-    int id;
-    bool isDeleted;
     int puntuation;
     int auxPuntuation = 0;
+    char* tmpNick = (char*) malloc(4);
+    char* tmpUser = (char*) malloc(15);
 
     int count = 0;
-    while (fread(&id, sizeof(id), 1, file) == 1) {
-        fread(tmpNick, 3, 1, file); tmpNick[3] = '\0';
-        fread(tmpUser, 14, 1, file); tmpUser[14] = '\0';
-        fread(tmpPass, 14, 1, file); tmpPass[14] = '\0';
-        fread(tmpBirth, 10, 1, file); tmpBirth[10] = '\0';
-        fread(tmpProvince, 14, 1, file); tmpProvince[14] = '\0';
-        fread(tmpEmail, 14, 1, file); tmpEmail[14] = '\0';
-        fread(&admin, sizeof(admin), 1, file);
-        fread(&credits, sizeof(credits), 1, file);
-        fread(&isDeleted, sizeof(isDeleted), 1, file);
-        fread(&puntuation, sizeof(puntuation), 1, file);
-
-        if (isDeleted) continue;
+    while (fread(&puntuation, sizeof(puntuation), 1, filePuntuation) == 1) {
+        fread(tmpNick, 3, 1, filePuntuation); tmpNick[3] = '\0';
+        fread(tmpUser, 14, 1, filePuntuation); tmpUser[14] = '\0';
 
         int pos = 0;
         for (; pos < count; pos++) {
-            unsigned char* current = ((unsigned char*)usersOrdered) + pos * 83;
+            unsigned char* current = ((unsigned char*)usersOrdered) + pos * 21;
 
             int currentScore;
             memcpy(&currentScore, current + OFFSET_PUNTUA, 4);
@@ -496,31 +479,23 @@ void LoadUsersOrdered() {
         if (pos < 10) {
 
             for (int j = (count < 10 ? count : 9); j > pos; j--) {
-                unsigned char* destiny = ((unsigned char*)usersOrdered) + j * 83;
-                unsigned char* source = ((unsigned char*)usersOrdered) + (j - 1) * 83;
+                unsigned char* destiny = ((unsigned char*)usersOrdered) + j * 21;
+                unsigned char* source = ((unsigned char*)usersOrdered) + (j - 1) * 21;
 
-                memcpy(destiny, source, 83);
+                memcpy(destiny, source, 21);
             }
 
-            unsigned char* ptr = ((unsigned char*)usersOrdered) + pos * 83;
+            unsigned char* ptr = ((unsigned char*)usersOrdered) + pos * 21;
 
-            memcpy(ptr + OFFSET_ID, &id, 4);
+            memcpy(ptr + OFFSET_PUNTUA, &puntuation, 4);
             memcpy(ptr + OFFSET_NICK, tmpNick, 3);
             memcpy(ptr + OFFSET_USER, tmpUser, 14);
-            memcpy(ptr + OFFSET_PASS, tmpPass, 14);
-            memcpy(ptr + OFFSET_BIRTHDAY, tmpBirth, 10);
-            memcpy(ptr + OFFSET_PROVINCE, tmpProvince, 14);
-            memcpy(ptr + OFFSET_EMAIL, tmpEmail, 14);
-            memcpy(ptr + OFFSET_ADMIN, &admin, 1);
-            memcpy(ptr + OFFSET_CREDITS, &credits, 4);
-            memcpy(ptr + OFFSET_DELETED, &isDeleted, 1);
-            memcpy(ptr + OFFSET_PUNTUA, &puntuation, 4);
 
             if (count < 10) count++;
         }
     }
 
-    fclose(file);
+    fclose(filePuntuation);
 
     usersOrderedCount = count;
 }
@@ -2522,15 +2497,15 @@ void SpaceJump() {
 }
 
 void SavePuntuation(int userId1, int userId2, int newPuntuation) {
-    FILE *file = fopen("users.dat", "r+b");
+    FILE *file = fopen("puntuations.dat", "r+b");
     if (file == NULL) {
         printf("Error opening file\n");
         return;
     }
 
-    int id;
+    int puntuation;
 
-    while (fread(&id, sizeof(int), 1, file) == 1) {
+    while (fread(&puntuation, sizeof(int), 1, file) == 1) {
 
         // long tipo de int mas tocho
         long startPos = ftell(file) - sizeof(int);
@@ -2543,16 +2518,10 @@ void SavePuntuation(int userId1, int userId2, int newPuntuation) {
 
         bool shouldUpdate = false;
 
-        printf("Id's: [%d] \n", id);
+        printf("Puntuation: [%d] \n", puntuation);
 
-        if ((id == userId1 && userId1 != 0) ||
-            (id == userId2 && userId2 != 0)) {
-
-                printf("current:  [%d]   ----  puntuation new:  [%d] \n", currentScore, newPuntuation);
-
-            if (newPuntuation > currentScore) {
-                shouldUpdate = true;
-            }
+        if (newPuntuation > currentScore) {
+            shouldUpdate = true;
         }
 
         if (shouldUpdate) {
@@ -2561,7 +2530,7 @@ void SavePuntuation(int userId1, int userId2, int newPuntuation) {
         }
 
         // saltamos
-        fseek(file, startPos + 83, SEEK_SET);
+        fseek(file, startPos + 21, SEEK_SET);
 
     }
 
@@ -2707,7 +2676,6 @@ void MoveUFO(UFO* ufo, float deltaTime) {
         } else {
             // logica del pequeñin
             ufo->centralPoint.x += 1.5f;
-            // igualmente lógica de seguimiento para nuestra nave player
         }
 
         if (ufo->centralPoint.x - 40 > windowX) {
