@@ -74,6 +74,9 @@ int provinceEditLength = 0, provinceEditMaxLength = 15;
 char* emailEdit = (char*) malloc (1);
 int emailEditLength = 0, emailEditMaxLength = 15;
 
+char* currentNick1 = (char*) malloc (4);
+char* currentNick2 = (char*) malloc (4);
+
 int creditsEdit = 0;
 int creditsMaxEdit = 999999;
 
@@ -460,16 +463,25 @@ void LoadUsersOrdered() {
     char* tmpUser = (char*) malloc(15);
 
     int count = 0;
-    while (fread(&puntuation, sizeof(puntuation), 1, filePuntuation) == 1) {
-        fread(tmpNick, 3, 1, filePuntuation); tmpNick[3] = '\0';
-        fread(tmpUser, 14, 1, filePuntuation); tmpUser[14] = '\0';
+    while (1) {
+
+        long startPos = ftell(filePuntuation);
+
+        if (fread(&puntuation, sizeof(int), 1, filePuntuation) != 1) {
+            break;
+        }
+
+        fread(tmpNick, 3, 1, filePuntuation); 
+        tmpNick[3] = '\0';
+        fread(tmpUser, 14, 1, filePuntuation); 
+        tmpUser[14] = '\0';
 
         int pos = 0;
         for (; pos < count; pos++) {
             unsigned char* current = ((unsigned char*)usersOrdered) + pos * 21;
 
             int currentScore;
-            memcpy(&currentScore, current + OFFSET_PUNTUA, 4);
+            memcpy(&currentScore, current + 0, 4);
 
             if (puntuation > currentScore) {
                 break;
@@ -487,12 +499,15 @@ void LoadUsersOrdered() {
 
             unsigned char* ptr = ((unsigned char*)usersOrdered) + pos * 21;
 
-            memcpy(ptr + OFFSET_PUNTUA, &puntuation, 4);
-            memcpy(ptr + OFFSET_NICK, tmpNick, 3);
-            memcpy(ptr + OFFSET_USER, tmpUser, 14);
+            memcpy(ptr + 0, &puntuation, 4);
+            memcpy(ptr + 4, tmpNick, 3);
+            memcpy(ptr + 7, tmpUser, 14);
 
             if (count < 10) count++;
         }
+
+        // esta movida hace que nos saltemos correctamente todo el reguistro actual
+        fseek(filePuntuation, startPos + 21, SEEK_SET);
     }
 
     fclose(filePuntuation);
@@ -771,15 +786,7 @@ void ShowOrderedPlayersScore() {
 
     char* tmpNick = (char*) malloc(4);
     char* tmpUser = (char*) malloc(15);
-    char* tmpPass = (char*) malloc(15);
-    char* tmpBirth = (char*) malloc(11);
-    char* tmpProvince = (char*) malloc(15);
-    char* tmpEmail = (char*) malloc(15);
 
-    bool admin;
-    int credits;
-    int id;
-    bool isDeleted;
     int puntuation;
 
     char* puntuationBuffer = (char*) malloc(6);
@@ -788,31 +795,22 @@ void ShowOrderedPlayersScore() {
     // validación pocha pero nos aseguramos de que no se inserte basura en memoria
     // además solo trabajamos con los usuarios que tenemos, con máximo de 10
     for (int i = 0; i < usersOrderedCount; i++) {
-        char* u = ((char*)usersOrdered) + i * 83;
+        char* u = ((char*)usersOrdered) + i * 21;
 
-        memcpy(tmpNick, u + OFFSET_NICK, 3);
+        memcpy(&puntuation, u + 0, 4);
+
+        memcpy(tmpNick, u + 4, 3);
         tmpNick[3] = '\0';
 
-        memcpy(tmpUser, u + OFFSET_USER, 14);
+        memcpy(tmpUser, u + 7, 14);
         tmpUser[14] = '\0';
 
-        memcpy(tmpPass, u + OFFSET_PASS, 14);
-        tmpPass[14] = '\0';
+        printf("---- DEBUG USER %d ----\n", i);
+printf("Nick raw: [%c %c %c]\n", u[OFFSET_NICK], u[OFFSET_NICK+1], u[OFFSET_NICK+2]);
 
-        memcpy(tmpBirth, u + OFFSET_BIRTHDAY, 10);
-        tmpBirth[10] = '\0';
-
-        memcpy(tmpProvince, u + OFFSET_PROVINCE, 14);
-        tmpProvince[14] = '\0';
-
-        memcpy(tmpEmail, u + OFFSET_EMAIL, 14);
-        tmpEmail[14] = '\0';
-
-        memcpy(&admin, u + OFFSET_ADMIN, 1);
-        memcpy(&credits, u + OFFSET_CREDITS, 4);
-        memcpy(&isDeleted, u + OFFSET_DELETED, 1);
-        memcpy(&puntuation, u + OFFSET_PUNTUA, 4);
-
+printf("Nick: [%s]\n", tmpNick);
+printf("User: [%s]\n", tmpUser);
+printf("Puntuation: [%d]\n", puntuation);
         esat::DrawText(250, y, tmpNick);
         esat::DrawText(250 + 100, y, tmpUser);
 
@@ -1149,6 +1147,8 @@ bool CheckOptionalUser(bool secondUserEnable) {
 
         if ((strcmp(tmpUser, userLogin) == 0) && (strcmp(tmpPass, passwordLogin) == 0)) {
             isValid = true;
+
+            memcpy(currentNick1, tmpNick, 4);
 
             if (secondUserEnable) {
                 userPlayerId2 = id;
@@ -2496,7 +2496,7 @@ void SpaceJump() {
     shipPlayer.centralPoint.y = (float) (rand()%608);
 }
 
-void SavePuntuation(int userId1, int userId2, int newPuntuation) {
+void SavePuntuation(char* nick, char* user, int newPuntuation) {
     FILE *file = fopen("puntuations.dat", "r+b");
     if (file == NULL) {
         printf("Error opening file\n");
@@ -2505,33 +2505,53 @@ void SavePuntuation(int userId1, int userId2, int newPuntuation) {
 
     int puntuation;
 
-    while (fread(&puntuation, sizeof(int), 1, file) == 1) {
+    bool found = false;
+    while (1) {
 
-        // long tipo de int mas tocho
-        long startPos = ftell(file) - sizeof(int);
-
-        // leemos puntuatioj del user
-        fseek(file, startPos + OFFSET_PUNTUA, SEEK_SET);
+        long startPos = ftell(file);
 
         int currentScore;
-        fread(&currentScore, sizeof(int), 1, file);
 
-        bool shouldUpdate = false;
+        char fileNick[4];
+        char fileUser[15];
 
-        printf("Puntuation: [%d] \n", puntuation);
-
-        if (newPuntuation > currentScore) {
-            shouldUpdate = true;
+        if (fread(&currentScore, sizeof(int), 1, file) != 1) {
+            break;
         }
 
-        if (shouldUpdate) {
-            fseek(file, startPos + OFFSET_PUNTUA, SEEK_SET);
-            fwrite(&newPuntuation, sizeof(int), 1, file);
+        fread(fileNick, 3, 1, file);
+        fileNick[3] = '\0';
+
+        fread(fileUser, 14, 1, file);
+        fileUser[14] = '\0';
+
+        if (strncmp(fileNick, nick, 3) == 0 &&
+            strncmp(fileUser, user, 14) == 0) {
+
+            found = 1;
+
+            if (newPuntuation > currentScore) {
+                printf("Updating score for %s\n", nick);
+
+                fseek(file, startPos + 0, SEEK_SET);
+                fwrite(&newPuntuation, sizeof(int), 1, file);
+            }
+
+            break;
         }
 
-        // saltamos
         fseek(file, startPos + 21, SEEK_SET);
 
+    }
+
+    if (!found) {
+        printf("Creating new user %s\n", nick);
+
+        fseek(file, 0, SEEK_END);
+
+        fwrite(&newPuntuation, sizeof(int), 1, file);
+        fwrite(nick, 3, 1, file);
+        fwrite(user, 14, 1, file);
     }
 
     fclose(file);
@@ -2544,7 +2564,7 @@ void CheckLifes() {
 
     if (shipPlayer.lifes == 0) {
         
-        SavePuntuation(userPlayerId1, userPlayerId2, puntuationInGame);
+        SavePuntuation(currentNick1, userLogin, puntuationInGame);
         // Load users too, to ordered users
         LoadUsersOrdered();
 
@@ -2941,6 +2961,8 @@ int esat::main(int argc, char **argv) {
                     shipPlayer.isAlive = false;
                     InitFragments(shipCopy);
                     RestLifes();
+                    shipPlayer.acceleration = {0.0f, 0.0f};
+                    shipPlayer.speed = {0.0f, 0.0f};
                     timeDeadShip = 2;
                 }
 
