@@ -2987,7 +2987,7 @@ int esat::main(int argc, char **argv) {
                     shipPlayer.angle -= 0.1f;
                 }
 
-                if (esat::IsKeyPressed('W')) {
+                if (esat::IsKeyPressed('W') && shipPlayer.isAlive) {
                     shipPlayer.acceleration = {
                         cosf(shipPlayer.angle) * 0.1f,
                         sinf(shipPlayer.angle) * 0.1f
