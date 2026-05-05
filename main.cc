@@ -2510,7 +2510,6 @@ void SavePuntuation(char* nick, char* user, int newPuntuation) {
     unsigned char buffer[11 * 21];
     int count = 0;
 
-    // 📥 LEER EXISTENTES (si hay archivo)
     if (file != NULL) {
         while (count < 10) {
             if (fread(buffer + count * 21, 21, 1, file) != 1) break;
@@ -2519,7 +2518,6 @@ void SavePuntuation(char* nick, char* user, int newPuntuation) {
         fclose(file);
     }
 
-    // 📌 AÑADIR NUEVO
     unsigned char* newEntry = buffer + count * 21;
 
     memcpy(newEntry + 0, &newPuntuation, 4);
@@ -2528,7 +2526,6 @@ void SavePuntuation(char* nick, char* user, int newPuntuation) {
 
     count++;
 
-    // 🔄 ORDENAR (descendente)
     for (int i = 0; i < count - 1; i++) {
         for (int j = i + 1; j < count; j++) {
 
