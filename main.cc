@@ -235,7 +235,7 @@ int activeAsteroids = 4;
 int pendingLevel = -1;
 
 UFO ufo;
-float ufoSpawnTimer;
+float ufoSpawnTimer, ufoShootTimer = 0.0f;
 
 // Asteroids vertexs
 void VertsAsteroid1(esat::Vec3 *vertices){
@@ -614,6 +614,14 @@ void InitUfos() {
 
     ufo.centralPoint.x = centralPointX;
     ufo.centralPoint.y = centralPointY;
+
+    // ahora tema disparo
+
+    ufo.shoot.isVisible = false;
+    ufo.shoot.distanceTravelled = 0.0f;
+    ufo.shoot.maxDistanceTravelled = 400.0f;
+
+    ufo.shoot.points = (esat::Vec3*)malloc(sizeof(esat::Vec3) * 1);
 }
 
 void ResetConfig() {
@@ -2699,10 +2707,41 @@ void MoveUFO(UFO* ufo, float deltaTime) {
         }
 
         if (ufo->centralPoint.x - 40 > windowX) {
-            ufo->centralPoint = {-50.0f, 100.0f, 0.0f};
+            float yDistance = rand()%600;
+            ufo->centralPoint = {-50.0f, yDistance, 0.0f};
             ufoSpawnTimer = 0;
         }
     }
+}
+
+void FireUFOShoot(UFO* ufo) {
+    // codigo que rompe el ecosistema directamente
+    if (!ufo->isAlive || ufo->shoot.isVisible) return;
+
+    ufo->shoot.isVisible = true;
+
+    // posición inicial de la bala
+    ufo->shoot.points[0].x = ufo->centralPoint.x;
+    ufo->shoot.points[0].y = ufo->centralPoint.y;
+    ufo->shoot.points[0].z = 1.0f;
+
+    // dirección hacia el jugador, vector director calculado en 
+    esat::Vec2 vecDir;
+    vecDir.x = shipPlayer.centralPoint.x - ufo->centralPoint.x;
+    vecDir.y = shipPlayer.centralPoint.y - ufo->centralPoint.y;
+
+    float length = sqrtf(vecDir.x * vecDir.x + vecDir.y * vecDir.y);
+
+    vecDir.x /= length;
+    vecDir.y /= length;
+
+    float bulletSpeed = 6.0f;
+
+    ufo->shoot.vectorDirector.x = vecDir.x * bulletSpeed;
+    ufo->shoot.vectorDirector.y = vecDir.y * bulletSpeed;
+
+    ufo->shoot.distanceTravelled = 0.0f;
+    ufo->shoot.maxDistanceTravelled = 400.0f;
 }
 
 void CheckUFOSpawn(float deltaTime) {
@@ -2710,9 +2749,16 @@ void CheckUFOSpawn(float deltaTime) {
     ufoSpawnTimer += deltaTime;
 
     // printf("Timer:  [%f] \n", ufoSpawnTimer);
-    if (ufoSpawnTimer < -10) {
+    if (ufoSpawnTimer < -5.0f) {
         ufo.isAlive = true;
         MoveUFO(&ufo, deltaTime);
+    }
+
+    ufoShootTimer += deltaTime;
+
+    if (ufoShootTimer < -2.0f) {
+        FireUFOShoot(&ufo);
+        ufoShootTimer = 0.0f;
     }
 }
 
@@ -2737,6 +2783,39 @@ void DrawUfo(UFO* ufo) {
 
         esat::DrawSolidPath(points, ufo->numVertices, true);
     } 
+}
+
+void UpdateUFOShoot(UFO* ufo) {
+    if (!ufo->shoot.isVisible) return;
+
+    ufo->shoot.points[0].x += ufo->shoot.vectorDirector.x;
+    ufo->shoot.points[0].y += ufo->shoot.vectorDirector.y;
+
+    ufo->shoot.distanceTravelled += 1.0f;
+
+    if (ufo->shoot.distanceTravelled >= ufo->shoot.maxDistanceTravelled) {
+
+        ufo->shoot.isVisible = false;
+        ufo->shoot.distanceTravelled = 0.0f;
+    }
+}
+
+void DrawUFOShoot(UFO* ufo) {
+    if (!ufo->shoot.isVisible) return;
+
+    printf("BB LLEGASTE \n");
+
+    esat::DrawSetFillColor(255, 255, 255, 255);
+    esat::DrawSetStrokeColor(255, 255, 255, 255);
+
+    float line[4] = {
+        ufo->shoot.points[0].x,
+        ufo->shoot.points[0].y,
+        ufo->shoot.points[0].x - ufo->shoot.vectorDirector.x,
+        ufo->shoot.points[0].y - ufo->shoot.vectorDirector.y
+    };
+
+    esat::DrawSolidPath(line, 2, false);
 }
 
 int esat::main(int argc, char **argv) {
@@ -2966,6 +3045,117 @@ int esat::main(int argc, char **argv) {
                     timeDeadShip = 2;
                 }
 
+                bool ufoCollision = false;
+                for (int i = 0; i < 12 && !ufoCollision; i++) {
+
+                    int nextI = (i + 1) % 12;
+                    
+                    for (int j = 0; j < totalAsteroidsPerLevels; j++) {
+                        if (asteroids[j].canCollide) {
+                            for (int k = 0; k < asteroids[j].numVertices; k++) {
+
+                                int nextK = (k + 1) % asteroids[j].numVertices;
+
+                                //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.points[i].x + shipPlayer.centralPoint.x, shipPlayer.points[i].y + shipPlayer.centralPoint.y);
+                                //printf("Puntos asteroids: [%f]   ----    [%f] \n", asteroids[j].vertices[k].x + + asteroids[j].centralPoint.x, asteroids[j].vertices[k].y + + asteroids[j].centralPoint.y);
+
+                                esat::Vec2 centralPointUFO = {ufo.centralPoint.x, ufo.centralPoint.y};
+                                esat::Vec2 centralPointAsteroid = {asteroids[j].centralPoint.x, asteroids[j].centralPoint.y};
+
+                                float scaleAsteroid = 25.0f;
+
+                                switch (asteroids[j].level) {
+                                    case AsteroidsLevel::LEVEL_1:
+                                        scaleAsteroid *= 1;
+                                    break;
+                                    case AsteroidsLevel::LEVEL_2:
+                                        scaleAsteroid *= 2;
+                                    break;
+                                    case AsteroidsLevel::LEVEL_3:
+                                        scaleAsteroid *= 3;
+                                    break;
+                                };
+
+                                float scaleUFO = 8.0f;
+
+                                if (ufo.isLittle) {
+                                    scaleUFO = 2.0f;
+                                }
+
+                                esat::Vec2 point1 = {(ufo.vertices[i].x * scaleUFO) + centralPointUFO.x, (ufo.vertices[i].y * scaleUFO) + centralPointUFO.y};
+                                esat::Vec2 point2 = {(ufo.vertices[nextI].x * scaleUFO) + centralPointUFO.x, (ufo.vertices[nextI].y * scaleUFO) + centralPointUFO.y};
+                                esat::Vec2 point3 = {(asteroids[j].vertices[k].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[k].y * scaleAsteroid) + centralPointAsteroid.y};
+                                esat::Vec2 point4 = {(asteroids[j].vertices[nextK].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[nextK].y * scaleAsteroid) + centralPointAsteroid.y};
+
+                                if (CollisionDetected(point1, point2, point3, point4)) {
+                                    ufoCollision = true;
+                                    asteroids[j].deadZone = asteroids[j].centralPoint;
+                                    SpawnAsteroidParticles({asteroids[j].deadZone.x, asteroids[j].deadZone.y});
+                                    ufoSpawnTimer = 0;
+                                    float yDistance = rand()%600;
+                                    ufo.centralPoint = {-50.0f, yDistance, 0.0f};
+                                    ufoShootTimer = 0;
+                                    ufo.shoot.isVisible = false;
+                                    ufo.isAlive = false;
+                                    ufo.canCollide = false;
+                                    ufo.isLittle = !ufo.isLittle;
+
+                                    BrokeAsteroid(&asteroids[j]);
+                                    break;
+                                }
+                            }
+                        }
+                        if (ufoCollision) break;
+                    }
+
+                    if (ufoCollision) break;
+                }
+
+                bool bulletCollisionWithUFO = false;
+                for (int i = 0; i < shipPlayer.numberShoots && !bulletCollisionWithUFO; i++) {
+                    if (shipPlayer.shoots[i].isVisible) {
+                        for (int k = 0; k < 12; k++) {
+
+                            int nextK = (k + 1) % 12;
+
+                            esat::Vec2 centralPointBullet = {shipPlayer.shoots[i].points[0].x, shipPlayer.shoots[i].points[0].y};
+                            esat::Vec2 centralPointUFO = {ufo.centralPoint.x, ufo.centralPoint.y};
+
+                            float scaleUFO = 8.0f;
+
+                            if (ufo.isLittle) {
+                                scaleUFO = 2.0f;
+                            }
+
+                            esat::Vec2 point1 = {(ufo.vertices[i].x * scaleUFO) + centralPointUFO.x, (ufo.vertices[i].y * scaleUFO) + centralPointUFO.y};
+                            esat::Vec2 point2 = {(ufo.vertices[nextK].x * scaleUFO) + centralPointUFO.x, (ufo.vertices[nextK].y * scaleUFO) + centralPointUFO.y};
+                            esat::Vec2 point3 = centralPointBullet;
+                            esat::Vec2 point4 = {centralPointBullet.x - (shipPlayer.shoots[i].vectorDirector.x * 2), centralPointBullet.y - (shipPlayer.shoots[i].vectorDirector.y * 2)};
+
+
+                            if (CollisionDetected(point1, point2, point3, point4)) {
+                                puntuationInGame += 200;
+                                if (ufo.isLittle) {
+                                    puntuationInGame += 100;
+                                }
+                                shipPlayer.shoots[i].isVisible = false;
+                                ufoSpawnTimer = 0;
+                                float yDistance = rand()%600;
+                                ufo.centralPoint = {-50.0f, yDistance, 0.0f};
+                                ufoShootTimer = 0;
+                                ufo.shoot.isVisible = false;
+                                ufo.isAlive = false;
+                                ufo.canCollide = false;
+                                ufo.isLittle = !ufo.isLittle;
+                                bulletCollisionWithUFO = true;
+                                break;
+                            }
+                        }
+
+                        if (bulletCollisionWithUFO) break;
+                    }
+                }
+
                 DrawDeadShip((current_time - last_time) / 1000 * (fps * 0.6f));
 
                 UpdateParticles((current_time - last_time) / 1000 * (fps * 0.6f));
@@ -2976,6 +3166,9 @@ int esat::main(int argc, char **argv) {
 
                 CheckUFOSpawn((current_time - last_time) / 1000 * (fps * 0.6f));
                 DrawUfo(&ufo);
+
+                UpdateUFOShoot(&ufo);
+                DrawUFOShoot(&ufo);
 
                 // all this shit is going into handle hell function
                 // think about + and - acceleration
