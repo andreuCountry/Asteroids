@@ -2505,61 +2505,58 @@ void SpaceJump() {
 }
 
 void SavePuntuation(char* nick, char* user, int newPuntuation) {
-    FILE *file = fopen("puntuations.dat", "r+b");
+     FILE *file = fopen("puntuations.dat", "rb");
+
+    unsigned char buffer[11 * 21];
+    int count = 0;
+
+    // 📥 LEER EXISTENTES (si hay archivo)
+    if (file != NULL) {
+        while (count < 10) {
+            if (fread(buffer + count * 21, 21, 1, file) != 1) break;
+            count++;
+        }
+        fclose(file);
+    }
+
+    // 📌 AÑADIR NUEVO
+    unsigned char* newEntry = buffer + count * 21;
+
+    memcpy(newEntry + 0, &newPuntuation, 4);
+    memcpy(newEntry + 4, nick, 3);
+    memcpy(newEntry + 7, user, 14);
+
+    count++;
+
+    // 🔄 ORDENAR (descendente)
+    for (int i = 0; i < count - 1; i++) {
+        for (int j = i + 1; j < count; j++) {
+
+            int scoreA, scoreB;
+
+            memcpy(&scoreA, buffer + i * 21, 4);
+            memcpy(&scoreB, buffer + j * 21, 4);
+
+            if (scoreB > scoreA) {
+                unsigned char tmp[21];
+                memcpy(tmp, buffer + i * 21, 21);
+                memcpy(buffer + i * 21, buffer + j * 21, 21);
+                memcpy(buffer + j * 21, tmp, 21);
+            }
+        }
+    }
+
+    if (count > 10) count = 10;
+
+    file = fopen("puntuations.dat", "wb");
+
     if (file == NULL) {
         printf("Error opening file\n");
         return;
     }
 
-    int puntuation;
-
-    bool found = false;
-    while (1) {
-
-        long startPos = ftell(file);
-
-        int currentScore;
-
-        char fileNick[4];
-        char fileUser[15];
-
-        if (fread(&currentScore, sizeof(int), 1, file) != 1) {
-            break;
-        }
-
-        fread(fileNick, 3, 1, file);
-        fileNick[3] = '\0';
-
-        fread(fileUser, 14, 1, file);
-        fileUser[14] = '\0';
-
-        if (strncmp(fileNick, nick, 3) == 0 &&
-            strncmp(fileUser, user, 14) == 0) {
-
-            found = 1;
-
-            if (newPuntuation > currentScore) {
-                printf("Updating score for %s\n", nick);
-
-                fseek(file, startPos + 0, SEEK_SET);
-                fwrite(&newPuntuation, sizeof(int), 1, file);
-            }
-
-            break;
-        }
-
-        fseek(file, startPos + 21, SEEK_SET);
-
-    }
-
-    if (!found) {
-        printf("Creating new user %s\n", nick);
-
-        fseek(file, 0, SEEK_END);
-
-        fwrite(&newPuntuation, sizeof(int), 1, file);
-        fwrite(nick, 3, 1, file);
-        fwrite(user, 14, 1, file);
+    for (int i = 0; i < count; i++) {
+        fwrite(buffer + i * 21, 21, 1, file);
     }
 
     fclose(file);
