@@ -79,6 +79,7 @@ char* currentNick2 = (char*) malloc (4);
 
 int creditsEdit = 0;
 int creditsMaxEdit = 999999;
+int creditsPlayer1 = 0, creditsPlayer2;
 
 int currentField = 0, currentLoginField = 0, currentEditField = 0, currentSecondLoginField = 0;
 int userId = 0;
@@ -101,7 +102,7 @@ struct User {
     int puntuation;
 };
 
-int puntuationInGame = 0;
+int puntuationInGame1 = 0, puntuationInGame2 = 0;
 
 // Globales para ir byte por byte en los bloques de memoria para copiar su info y estructurarla
 #define OFFSET_ID        0
@@ -236,6 +237,9 @@ int pendingLevel = -1;
 
 UFO ufo;
 float ufoSpawnTimer, ufoShootTimer = 0.0f;
+
+// booleana para saber si estamos modo multiplayer
+bool isMultiplayerActive = false;
 
 // Asteroids vertexs
 void VertsAsteroid1(esat::Vec3 *vertices){
@@ -813,12 +817,6 @@ void ShowOrderedPlayersScore() {
         memcpy(tmpUser, u + 7, 14);
         tmpUser[14] = '\0';
 
-        printf("---- DEBUG USER %d ----\n", i);
-printf("Nick raw: [%c %c %c]\n", u[OFFSET_NICK], u[OFFSET_NICK+1], u[OFFSET_NICK+2]);
-
-printf("Nick: [%s]\n", tmpNick);
-printf("User: [%s]\n", tmpUser);
-printf("Puntuation: [%d]\n", puntuation);
         esat::DrawText(250, y, tmpNick);
         esat::DrawText(250 + 100, y, tmpUser);
 
@@ -1137,6 +1135,12 @@ bool CheckOptionalUser(bool secondUserEnable) {
         fread(tmpEmail, 14, 1, f); tmpEmail[14] = '\0';
         fread(&admin, sizeof(admin), 1, f);
         fread(&credits, sizeof(credits), 1, f);
+        // asignacion de creditos para modificarlos despues en inicio de partida
+        if (!secondUserEnable) {
+            creditsPlayer1 = credits;
+        } else {
+            creditsPlayer2 = credits;
+        }
         fread(&isDeleted, sizeof(isDeleted), 1, f);
         fread(&puntuation, sizeof(puntuation), 1, f);
 
@@ -1412,12 +1416,16 @@ void HandleTextInputDynamic() {
 
 void HandleAskGameplay() {
     if (esat::IsKeyDown('S')) {
+        creditsPlayer1--;
         timeInmortality = 3;
         shipPlayer.inmortality = true;
         currentGame.actualScene = GAMEPLAY;
     }
 
     if (esat::IsKeyDown('M')) {
+        creditsPlayer1--;
+        creditsPlayer2--;
+        isMultiplayerActive = true;
         currentGame.actualScene = ASK_SECOND_LOGIN;
     }
 }
@@ -2402,7 +2410,7 @@ void ActivateNewAsteroid(Asteroids asteroid) {
 void BrokeAsteroid(Asteroids* asteroid_broke) {
 
     if (asteroid_broke->level == AsteroidsLevel::LEVEL_1) {
-        puntuationInGame += 100;
+        puntuationInGame1 += 100;
         asteroid_broke->isAlive = false;
         asteroid_broke->canCollide = false;
         return;
@@ -2410,11 +2418,11 @@ void BrokeAsteroid(Asteroids* asteroid_broke) {
 
     switch (asteroid_broke->level) {
         case AsteroidsLevel::LEVEL_3:
-            puntuationInGame += 20;
+            puntuationInGame1 += 20;
             asteroid_broke->level = LEVEL_2;
         break;
         case AsteroidsLevel::LEVEL_2:
-            puntuationInGame += 50;
+            puntuationInGame1 += 50;
             asteroid_broke->level = LEVEL_1;
         break;
     }
@@ -2475,7 +2483,8 @@ void DrawPuntuation() {
 	// Puntuacion
     esat::DrawSetTextSize(20);
 	esat::DrawSetFillColor(255, 255, 255);
-	itoa(puntuationInGame + 1000000, score, 10);
+    // TO_DO check if number can be seeing it if number is 999999
+	itoa(puntuationInGame1 + 1000000, score, 10);
 
     esat::DrawText(40, 50, score + 1);
 }
@@ -2505,7 +2514,7 @@ void SpaceJump() {
 }
 
 void SavePuntuation(char* nick, char* user, int newPuntuation) {
-     FILE *file = fopen("puntuations.dat", "rb");
+    FILE *file = fopen("puntuations.dat", "rb");
 
     unsigned char buffer[11 * 21];
     int count = 0;
@@ -2558,15 +2567,59 @@ void SavePuntuation(char* nick, char* user, int newPuntuation) {
 
     fclose(file);
 }
+/*
+void RestCredits(char* username) {
+    file = fopen("users.dat", "r+b");
+    if (file == NULL) {
+        printf("Error opening file\n");
+        return;
+    }
+
+    int id;
+
+    while (fread(&id, sizeof(id), 1, file) == 1) {
+
+        if (userId == id) {
+
+            long pos = ftell(file);
+
+            fseek(file, pos - sizeof(int), SEEK_SET);
+
+            fseek(file, sizeof(int), SEEK_CUR);
+
+            fwrite(nicknameEdit, 3, 1, file);
+            fwrite(userPlayerEdit, 14, 1, file);
+            fwrite(passwordEdit, 14, 1, file);
+            fwrite(birthdayEdit, 10, 1, file);
+            fwrite(provinceEdit, 14, 1, file);
+            fwrite(emailEdit, 14, 1, file);
+            fwrite(0, 1, 1, file);
+            fwrite(&creditsEdit, 4, 1, file);
+
+            break;
+        }
+
+        fseek(file, 3 + 14 + 14 + 10 + 14 + 14 + sizeof(bool) + sizeof(int) + sizeof(bool) + sizeof(int), SEEK_CUR);
+
+    }
+
+    fclose(file);
+}*/
 
 void CheckLifes() {
-    if (puntuationInGame % 10000 == 0 && puntuationInGame != 0) {
+    if (puntuationInGame1 % 10000 == 0 && puntuationInGame1 != 0) {
         shipPlayer.lifes++;
     }
 
     if (shipPlayer.lifes == 0) {
         
-        SavePuntuation(currentNick1, userLogin, puntuationInGame);
+        SavePuntuation(currentNick1, userLogin, puntuationInGame1);
+        RestCredits(userLogin);
+
+        if (isMultiplayerActive) {
+            SavePuntuation(currentNick2, userSecondLogin, puntuationInGame2);
+            RestCredits(userSecondLogin);        
+        }
         // Load users too, to ordered users
         LoadUsersOrdered();
 
@@ -3128,9 +3181,9 @@ int esat::main(int argc, char **argv) {
 
 
                             if (CollisionDetected(point1, point2, point3, point4)) {
-                                puntuationInGame += 200;
+                                puntuationInGame1 += 200;
                                 if (ufo.isLittle) {
-                                    puntuationInGame += 100;
+                                    puntuationInGame1 += 100;
                                 }
                                 shipPlayer.shoots[i].isVisible = false;
                                 ufoSpawnTimer = 0;
@@ -3148,6 +3201,102 @@ int esat::main(int argc, char **argv) {
 
                         if (bulletCollisionWithUFO) break;
                     }
+                }
+
+                bool ufoCollisionBulletAsteroid = false;
+                for (int i = 0; i < 12 && !ufoCollisionBulletAsteroid; i++) {
+
+                    int nextI = (i + 1) % 12;
+                    
+                    for (int j = 0; j < totalAsteroidsPerLevels; j++) {
+                        if (asteroids[j].canCollide) {
+                            for (int k = 0; k < asteroids[j].numVertices; k++) {
+
+                                int nextK = (k + 1) % asteroids[j].numVertices;
+
+                                //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.points[i].x + shipPlayer.centralPoint.x, shipPlayer.points[i].y + shipPlayer.centralPoint.y);
+                                //printf("Puntos asteroids: [%f]   ----    [%f] \n", asteroids[j].vertices[k].x + + asteroids[j].centralPoint.x, asteroids[j].vertices[k].y + + asteroids[j].centralPoint.y);
+
+                                esat::Vec2 centralPointBullet = {ufo.shoot.points[0].x, ufo.shoot.points[0].y};
+                                esat::Vec2 centralPointAsteroid = {asteroids[j].centralPoint.x, asteroids[j].centralPoint.y};
+
+                                float scaleAsteroid = 25.0f;
+
+                                switch (asteroids[j].level) {
+                                    case AsteroidsLevel::LEVEL_1:
+                                        scaleAsteroid *= 1;
+                                    break;
+                                    case AsteroidsLevel::LEVEL_2:
+                                        scaleAsteroid *= 2;
+                                    break;
+                                    case AsteroidsLevel::LEVEL_3:
+                                        scaleAsteroid *= 3;
+                                    break;
+                                };
+
+                                float scaleUFO = 8.0f;
+
+                                if (ufo.isLittle) {
+                                    scaleUFO = 2.0f;
+                                }
+
+                                esat::Vec2 point1 = {centralPointBullet.x, centralPointBullet.y};
+                                esat::Vec2 point2 = {centralPointBullet.x - (ufo.shoot.vectorDirector.x * 2), centralPointBullet.y - (ufo.shoot.vectorDirector.y * 2)};
+                                esat::Vec2 point3 = {(asteroids[j].vertices[k].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[k].y * scaleAsteroid) + centralPointAsteroid.y};
+                                esat::Vec2 point4 = {(asteroids[j].vertices[nextK].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[nextK].y * scaleAsteroid) + centralPointAsteroid.y};
+
+                                if (CollisionDetected(point1, point2, point3, point4)) {
+                                    ufoCollisionBulletAsteroid = true;
+                                    asteroids[j].deadZone = asteroids[j].centralPoint;
+                                    SpawnAsteroidParticles({asteroids[j].deadZone.x, asteroids[j].deadZone.y});
+                                    float yDistance = rand()%600;
+                                    ufo.centralPoint = {-50.0f, yDistance, 0.0f};
+                                    ufoShootTimer = 0;
+                                    ufo.shoot.isVisible = false;
+
+                                    BrokeAsteroid(&asteroids[j]);
+                                    break;
+                                }
+                            }
+                        }
+                        if (ufoCollisionBulletAsteroid) break;
+                    }
+
+                    if (ufoCollisionBulletAsteroid) break;
+                }
+
+                bool ufoCollisionBulletShip = false;
+                for (int i = 0; i < 12 && !ufoCollisionBulletShip; i++) {
+
+                    int nextI = (i + 1) % 12;
+
+                    //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.points[i].x + shipPlayer.centralPoint.x, shipPlayer.points[i].y + shipPlayer.centralPoint.y);
+                    //printf("Puntos asteroids: [%f]   ----    [%f] \n", asteroids[j].vertices[k].x + + asteroids[j].centralPoint.x, asteroids[j].vertices[k].y + + asteroids[j].centralPoint.y);
+
+                    esat::Vec2 centralPointBullet = {ufo.shoot.points[0].x, ufo.shoot.points[0].y};
+                    esat::Vec2 centralPointShip = {shipPlayer.centralPoint.x, shipPlayer.centralPoint.y};
+
+                    esat::Vec2 point1 = {centralPointBullet.x, centralPointBullet.y};
+                    esat::Vec2 point2 = {centralPointBullet.x - (ufo.shoot.vectorDirector.x * 2), centralPointBullet.y - (ufo.shoot.vectorDirector.y * 2)};
+                    esat::Vec2 point3 = {shipPlayer.points[i].x + centralPointShip.x, shipPlayer.points[i].y + centralPointShip.y};
+                    esat::Vec2 point4 = {shipPlayer.points[nextI].x + centralPointShip.x, shipPlayer.points[nextI].y + centralPointShip.y};
+                                    
+                    if (CollisionDetected(point1, point2, point3, point4)) {
+                        ufo.shoot.isVisible = false;
+                        ufoCollisionBulletShip = true;
+                        shipPlayer.deadZone = shipPlayer.centralPoint;
+                        shipPlayer.showDeadZone = true;
+                        shipCopy = shipPlayer;
+                        shipPlayer.isAlive = false;
+                        InitFragments(shipCopy);
+                        RestLifes();
+                        shipPlayer.acceleration = {0.0f, 0.0f};
+                        shipPlayer.speed = {0.0f, 0.0f};
+                        timeDeadShip = 2;
+                        break;
+                    }
+
+                    if (ufoCollisionBulletShip) break;
                 }
 
                 DrawDeadShip((current_time - last_time) / 1000 * (fps * 0.6f));
@@ -3223,6 +3372,8 @@ int esat::main(int argc, char **argv) {
                 }
 
                 if (esat::IsKeyDown('G')) {
+                    // inmortal otra vez
+                    timeInmortality = 3;
                     SpaceJump();
                 }
 
