@@ -141,6 +141,7 @@ struct Ship {
     bool inmortality = false;
     esat::Vec3 deadZone;
     bool showDeadZone = false;
+    bool isSecondPlayer = false;
 };
 
 struct ShipFragment {
@@ -242,6 +243,9 @@ float ufoSpawnTimer, ufoShootTimer = 0.0f;
 bool isMultiplayerActive = false;
 
 bool playerHighscored = false;
+
+// segundo jugador vidas para acabar el gameplay
+int secondPlayerLifes = 4;
 
 // Asteroids vertexs
 void VertsAsteroid1(esat::Vec3 *vertices){
@@ -1159,15 +1163,16 @@ bool CheckOptionalUser(bool secondUserEnable) {
         printf(" isDeleted=%d", isDeleted);
         printf(" puntuation=%d \n", puntuation);*/
 
-        if ((strcmp(tmpUser, userLogin) == 0) && (strcmp(tmpPass, passwordLogin) == 0)) {
-            isValid = true;
+        if (secondUserEnable) {
+            if ((strcmp(tmpUser, userSecondLogin) == 0) && (strcmp(tmpPass, passwordSecondLogin) == 0)) {
+                isValid = true;
+                memcpy(currentNick2, tmpNick, 4);
+            }
+        } else {
+            if ((strcmp(tmpUser, userLogin) == 0) && (strcmp(tmpPass, passwordLogin) == 0)) {
+                isValid = true;
 
-            memcpy(currentNick1, tmpNick, 4);
-
-            if (secondUserEnable) {
-                userPlayerId2 = id;
-            } else {
-                userPlayerId1 = id;
+                memcpy(currentNick1, tmpNick, 4);
             }
         }
     }
@@ -2412,7 +2417,11 @@ void ActivateNewAsteroid(Asteroids asteroid) {
 void BrokeAsteroid(Asteroids* asteroid_broke) {
 
     if (asteroid_broke->level == AsteroidsLevel::LEVEL_1) {
-        puntuationInGame1 += 100;
+        if (shipPlayer.isSecondPlayer) {
+            puntuationInGame2 += 100;
+        } else {
+            puntuationInGame1 += 100;
+        }
         asteroid_broke->isAlive = false;
         asteroid_broke->canCollide = false;
         return;
@@ -2420,11 +2429,19 @@ void BrokeAsteroid(Asteroids* asteroid_broke) {
 
     switch (asteroid_broke->level) {
         case AsteroidsLevel::LEVEL_3:
-            puntuationInGame1 += 20;
+            if (shipPlayer.isSecondPlayer) {
+                puntuationInGame2 += 20;
+            } else {
+                puntuationInGame1 += 20;
+            }
             asteroid_broke->level = LEVEL_2;
         break;
         case AsteroidsLevel::LEVEL_2:
-            puntuationInGame1 += 50;
+            if (shipPlayer.isSecondPlayer) {
+                puntuationInGame2 += 50;
+            } else {
+                puntuationInGame1 += 50;
+            }
             asteroid_broke->level = LEVEL_1;
         break;
     }
@@ -2438,12 +2455,17 @@ void SpawnPlayer() {
 
 void RestLifes() {
     if (!shipPlayer.inmortality) {
-        shipPlayer.inmortality = true;
-        printf("Lifes: [%d] \n", shipPlayer.lifes);
-        printf("toque \n");
-        shipPlayer.lifes--;
-        timeInmortality = 3.0f;
+        if (shipPlayer.isSecondPlayer) {
+            secondPlayerLifes--;
+        } else {
+            shipPlayer.lifes--;
+        }
+        
+        // para cambiar de player activo
+        shipPlayer.isSecondPlayer = !shipPlayer.isSecondPlayer;
 
+        shipPlayer.inmortality = true;
+        timeInmortality = 3.0f;
     }
 }
 
@@ -2485,10 +2507,19 @@ void DrawPuntuation() {
 	// Puntuacion
     esat::DrawSetTextSize(20);
 	esat::DrawSetFillColor(255, 255, 255);
-    // TO_DO check if number can be seeing it if number is 999999
 	itoa(puntuationInGame1 + 1000000, score, 10);
 
     esat::DrawText(40, 50, score + 1);
+
+    if (isMultiplayerActive) {
+        char score[6];
+        // Puntuacion
+        esat::DrawSetTextSize(20);
+        esat::DrawSetFillColor(255, 255, 255);
+        itoa(puntuationInGame2 + 1000000, score, 10);
+
+        esat::DrawText(windowX - 120, 50, score + 1);
+    }
 }
 
 void DrawLifes(esat::Mat3 m) {
@@ -2607,7 +2638,7 @@ void RestCredits(char* username) {
 
             fread(&credits, sizeof(int), 1, file);
 
-            printf("Credits before: [%d] \n", credits);
+            //printf("Credits before: [%d] \n", credits);
 
             credits--;
 
@@ -2615,7 +2646,7 @@ void RestCredits(char* username) {
                 credits += 5;
             }
 
-            printf("Credits after: [%d] \n", credits);
+            //printf("Credits after: [%d] \n", credits);
 
 
             fseek(file, -sizeof(int), SEEK_CUR);
@@ -2629,7 +2660,8 @@ void RestCredits(char* username) {
             14 + 10 + 14 + 14 +
             sizeof(bool) + sizeof(int) +
             sizeof(bool) + sizeof(int),
-            SEEK_CUR);
+            SEEK_CUR
+        );
     }
 
     fclose(file);
@@ -2640,7 +2672,11 @@ void CheckLifes() {
         shipPlayer.lifes++;
     }
 
-    if (shipPlayer.lifes == 0) {
+    if (puntuationInGame2 % 10000 == 0 && puntuationInGame2 != 0) {
+        secondPlayerLifes++;
+    }
+
+    if (shipPlayer.lifes == 0 && secondPlayerLifes == 0) {
         
         SavePuntuation(currentNick1, userLogin, puntuationInGame1);
         RestCredits(userLogin);
@@ -2649,7 +2685,7 @@ void CheckLifes() {
             SavePuntuation(currentNick2, userSecondLogin, puntuationInGame2);
             RestCredits(userSecondLogin);        
         }
-        // Load users too, to ordered users
+        // Load users too, to ordered users b 
         LoadUsersOrdered();
 
         // reinicio de la nave para evitar problemas de compatiblidad
@@ -2668,7 +2704,8 @@ void CheckLifes() {
 
         // cambiamos a escena de highscores
         currentGame.actualScene = HIGHSCORES;
-        shipPlayer.lifes = 3;
+        shipPlayer.lifes = 4;
+        secondPlayerLifes = 4;
     }
 }
 
@@ -2992,6 +3029,8 @@ int esat::main(int argc, char **argv) {
             break;
             case Scenes::GAMEPLAY:
  
+            printf("Nick 1: [%s] \n", currentNick1);
+            printf("Nick 2: [%s] \n", currentNick2);  
                 // control de paso de nivel;
                 pendingLevelChange = true;
  
@@ -3216,17 +3255,25 @@ int esat::main(int argc, char **argv) {
                                 scaleUFO = 2.0f;
                             }
 
-                            esat::Vec2 point1 = {(ufo.vertices[i].x * scaleUFO) + centralPointUFO.x, (ufo.vertices[i].y * scaleUFO) + centralPointUFO.y};
+                            esat::Vec2 point1 = {(ufo.vertices[k].x * scaleUFO) + centralPointUFO.x, (ufo.vertices[k].y * scaleUFO) + centralPointUFO.y};
                             esat::Vec2 point2 = {(ufo.vertices[nextK].x * scaleUFO) + centralPointUFO.x, (ufo.vertices[nextK].y * scaleUFO) + centralPointUFO.y};
                             esat::Vec2 point3 = centralPointBullet;
                             esat::Vec2 point4 = {centralPointBullet.x - (shipPlayer.shoots[i].vectorDirector.x * 2), centralPointBullet.y - (shipPlayer.shoots[i].vectorDirector.y * 2)};
 
 
                             if (CollisionDetected(point1, point2, point3, point4)) {
-                                puntuationInGame1 += 200;
-                                if (ufo.isLittle) {
-                                    puntuationInGame1 += 100;
+                                if (shipPlayer.isSecondPlayer) {
+                                    puntuationInGame1 += 200;
+                                    if (ufo.isLittle) {
+                                        puntuationInGame1 += 100;
+                                    }    
+                                } else {
+                                    puntuationInGame2 += 200;
+                                    if (ufo.isLittle) {
+                                        puntuationInGame2 += 100;
+                                    }
                                 }
+                                
                                 shipPlayer.shoots[i].isVisible = false;
                                 ufoSpawnTimer = 0;
                                 float yDistance = rand()%600;
@@ -3430,10 +3477,16 @@ int esat::main(int argc, char **argv) {
                     matrizLittle = UpdateFigurita({1.0f, 1.0f}, -3.14f / 2, {40.0f * (i + 1), 90.0f});
                     DrawLifes(matrizLittle);
                 }
-                /*if (userId2 != 0) {
-                    DrawPuntuation();
-                    DrawLifes2();
-                }*/
+
+                // duplicar codigo para vidas restantes del otro jugador
+                if (isMultiplayerActive) {
+
+                    for (int i = 0; i < secondPlayerLifes - 1; i++) {
+
+                        matrizLittle = UpdateFigurita({1.0f, 1.0f}, -3.14f / 2, {(windowX - 120) + (i * 40), 90.0f});
+                        DrawLifes(matrizLittle);
+                    }
+                }
 
                 DrawShoots();
                 if (!isChangingLevel) {
