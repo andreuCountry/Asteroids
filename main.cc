@@ -241,6 +241,8 @@ float ufoSpawnTimer, ufoShootTimer = 0.0f;
 // booleana para saber si estamos modo multiplayer
 bool isMultiplayerActive = false;
 
+bool playerHighscored = false;
+
 // Asteroids vertexs
 void VertsAsteroid1(esat::Vec3 *vertices){
     *(vertices) = {0.00f, 0.40f, 1.0f};
@@ -2552,6 +2554,19 @@ void SavePuntuation(char* nick, char* user, int newPuntuation) {
         }
     }
 
+    playerHighscored = false;
+
+    int lowestScore = 0;
+
+    if (count == 10) {
+        memcpy(&lowestScore, buffer + (count - 1) * 21, 4);
+    }
+
+    // checkeo de si esta dentro de los minimos y si ademas es mayor que el ultimo
+    if (count < 10 || newPuntuation > lowestScore) {
+        playerHighscored = true;
+    }
+
     if (count > 10) count = 10;
 
     file = fopen("puntuations.dat", "wb");
@@ -2567,44 +2582,58 @@ void SavePuntuation(char* nick, char* user, int newPuntuation) {
 
     fclose(file);
 }
-/*
+
 void RestCredits(char* username) {
     file = fopen("users.dat", "r+b");
+
     if (file == NULL) {
         printf("Error opening file\n");
         return;
     }
 
     int id;
+    int credits;
+    char user[14];
 
-    while (fread(&id, sizeof(id), 1, file) == 1) {
+    while (fread(&id, sizeof(int), 1, file) == 1) {
 
-        if (userId == id) {
+        fseek(file, 3, SEEK_CUR);
 
-            long pos = ftell(file);
+        fread(user, 14, 1, file);
 
-            fseek(file, pos - sizeof(int), SEEK_SET);
+        if (strcmp(user, username) == 0) {
 
-            fseek(file, sizeof(int), SEEK_CUR);
+            fseek(file, 14 + 10 + 14 + 14 + sizeof(bool), SEEK_CUR);
 
-            fwrite(nicknameEdit, 3, 1, file);
-            fwrite(userPlayerEdit, 14, 1, file);
-            fwrite(passwordEdit, 14, 1, file);
-            fwrite(birthdayEdit, 10, 1, file);
-            fwrite(provinceEdit, 14, 1, file);
-            fwrite(emailEdit, 14, 1, file);
-            fwrite(0, 1, 1, file);
-            fwrite(&creditsEdit, 4, 1, file);
+            fread(&credits, sizeof(int), 1, file);
+
+            printf("Credits before: [%d] \n", credits);
+
+            credits--;
+
+            if (playerHighscored) {
+                credits += 5;
+            }
+
+            printf("Credits after: [%d] \n", credits);
+
+
+            fseek(file, -sizeof(int), SEEK_CUR);
+
+            fwrite(&credits, sizeof(int), 1, file);
 
             break;
         }
 
-        fseek(file, 3 + 14 + 14 + 10 + 14 + 14 + sizeof(bool) + sizeof(int) + sizeof(bool) + sizeof(int), SEEK_CUR);
-
+        fseek(file,
+            14 + 10 + 14 + 14 +
+            sizeof(bool) + sizeof(int) +
+            sizeof(bool) + sizeof(int),
+            SEEK_CUR);
     }
 
     fclose(file);
-}*/
+}
 
 void CheckLifes() {
     if (puntuationInGame1 % 10000 == 0 && puntuationInGame1 != 0) {
@@ -2623,6 +2652,21 @@ void CheckLifes() {
         // Load users too, to ordered users
         LoadUsersOrdered();
 
+        // reinicio de la nave para evitar problemas de compatiblidad
+        shipPlayer.inmortality = true;
+        shipPlayer.isAlive = true;
+        shipPlayer.showDeadZone = false;
+        timeInmortality = 3.0f;
+        shipPlayer.centralPoint = {windowX / 2, windowY / 2, 1.0f};
+        puntuationInGame1 = 0;
+        puntuationInGame2 = 0;
+        ufo.centralPoint = {-50, 100};
+
+        // reinicio de level en cada repeticion de game
+        LevelConfig(actualLevel);
+        InitAsteroids();
+
+        // cambiamos a escena de highscores
         currentGame.actualScene = HIGHSCORES;
         shipPlayer.lifes = 3;
     }
@@ -2850,8 +2894,6 @@ void UpdateUFOShoot(UFO* ufo) {
 void DrawUFOShoot(UFO* ufo) {
     if (!ufo->shoot.isVisible) return;
 
-    printf("BB LLEGASTE \n");
-
     esat::DrawSetFillColor(255, 255, 255, 255);
     esat::DrawSetStrokeColor(255, 255, 255, 255);
 
@@ -3064,11 +3106,11 @@ int esat::main(int argc, char **argv) {
 
 
                                     if (CollisionDetected(point1, point2, point3, point4)) {
+                                        bulletCollision = true;
                                         shipPlayer.shoots[i].isVisible = false;
                                         asteroids[j].deadZone = asteroids[j].centralPoint;
                                         SpawnAsteroidParticles({asteroids[j].deadZone.x, asteroids[j].deadZone.y});
                                         BrokeAsteroid(&asteroids[j]);
-                                        bulletCollision = true;
                                         break;
                                     }
                                 }
@@ -3249,8 +3291,6 @@ int esat::main(int argc, char **argv) {
                                     ufoCollisionBulletAsteroid = true;
                                     asteroids[j].deadZone = asteroids[j].centralPoint;
                                     SpawnAsteroidParticles({asteroids[j].deadZone.x, asteroids[j].deadZone.y});
-                                    float yDistance = rand()%600;
-                                    ufo.centralPoint = {-50.0f, yDistance, 0.0f};
                                     ufoShootTimer = 0;
                                     ufo.shoot.isVisible = false;
 
@@ -3281,7 +3321,7 @@ int esat::main(int argc, char **argv) {
                     esat::Vec2 point3 = {shipPlayer.points[i].x + centralPointShip.x, shipPlayer.points[i].y + centralPointShip.y};
                     esat::Vec2 point4 = {shipPlayer.points[nextI].x + centralPointShip.x, shipPlayer.points[nextI].y + centralPointShip.y};
                                     
-                    if (CollisionDetected(point1, point2, point3, point4)) {
+                    if (CollisionDetected(point1, point2, point3, point4) && !shipPlayer.inmortality) {
                         ufo.shoot.isVisible = false;
                         ufoCollisionBulletShip = true;
                         shipPlayer.deadZone = shipPlayer.centralPoint;
