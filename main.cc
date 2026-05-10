@@ -1423,17 +1423,24 @@ void HandleTextInputDynamic() {
 
 void HandleAskGameplay() {
     if (esat::IsKeyDown('S')) {
-        creditsPlayer1--;
-        timeInmortality = 3;
-        shipPlayer.inmortality = true;
-        currentGame.actualScene = GAMEPLAY;
+
+        if (creditsPlayer1 > 0) {
+            timeInmortality = 3;
+            shipPlayer.inmortality = true;
+            currentGame.actualScene = GAMEPLAY;
+        }
+        
     }
 
     if (esat::IsKeyDown('M')) {
-        creditsPlayer1--;
-        creditsPlayer2--;
+        timeInmortality = 3;
+        shipPlayer.inmortality = true;
         isMultiplayerActive = true;
         currentGame.actualScene = ASK_SECOND_LOGIN;
+    }
+
+    if (esat::IsSpecialKeyDown(esat::kSpecialKey_Backspace)) {
+        currentGame.actualScene = LOAD_REGISTER;
     }
 }
 
@@ -1488,6 +1495,16 @@ void HandleSecondLogin() {
     if (currentSecondLoginField == 2) {
         if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
             bool optionalUser = CheckOptionalUser(true);
+
+            if (isMultiplayerActive) {
+                if (creditsPlayer1 <= 0 || creditsPlayer2 <= 0) {
+                    optionalUser = false;
+                }
+            } else {
+                if (creditsPlayer1 <= 0) {
+                    optionalUser = false;
+                }
+            }
 
             if (optionalUser) {
                 timeInmortality = 3;
@@ -1662,13 +1679,14 @@ void EditUser() {
 
             fseek(file, sizeof(int), SEEK_CUR);
 
+            bool notAdmin = false;
             fwrite(nicknameEdit, 3, 1, file);
             fwrite(userPlayerEdit, 14, 1, file);
             fwrite(passwordEdit, 14, 1, file);
             fwrite(birthdayEdit, 10, 1, file);
             fwrite(provinceEdit, 14, 1, file);
             fwrite(emailEdit, 14, 1, file);
-            fwrite(0, 1, 1, file);
+            fwrite(&notAdmin, 1, 1, file);
             fwrite(&creditsEdit, 4, 1, file);
 
             break;
@@ -1922,7 +1940,7 @@ void DrawLoadRegister() {
     esat::DrawText(windowX / 3.5f, windowY / 2, "PASSWORD: ");
     esat::DrawText(windowX / 2.5f, windowY / 1.5f, "PLAY.....");
 
-    // nickname
+    // user
     esat::DrawText(windowX / 2, windowY / 2.5f, userLogin);
 
     // tema de password
@@ -2013,7 +2031,7 @@ void DrawAdminSection() {
     esat::DrawText(windowX / 3, windowY / 7, "ADMIN SECTION:");
 
     esat::DrawText(100, windowY / 4, "NICKNAME");
-    esat::DrawText(300, windowY / 4, "USER_NAME");
+    esat::DrawText(300, windowY / 4, "USERNAME");
     esat::DrawText(500, windowY / 4, "PASSWORD");
 
     esat::DrawLine(windowX / 3.1f, windowY / 6, windowX / 1.5f, windowY / 6);
@@ -2461,8 +2479,9 @@ void RestLifes() {
             shipPlayer.lifes--;
         }
         
-        // para cambiar de player activo
-        shipPlayer.isSecondPlayer = !shipPlayer.isSecondPlayer;
+        if (isMultiplayerActive) {
+            shipPlayer.isSecondPlayer = !shipPlayer.isSecondPlayer;
+        }
 
         shipPlayer.inmortality = true;
         timeInmortality = 3.0f;
@@ -2676,37 +2695,67 @@ void CheckLifes() {
         secondPlayerLifes++;
     }
 
-    if (shipPlayer.lifes == 0 && secondPlayerLifes == 0) {
-        
-        SavePuntuation(currentNick1, userLogin, puntuationInGame1);
-        RestCredits(userLogin);
+    if (isMultiplayerActive) {
 
-        if (isMultiplayerActive) {
+        if (shipPlayer.lifes == 0 && secondPlayerLifes == 0) {
+            SavePuntuation(currentNick1, userLogin, puntuationInGame1);
+            RestCredits(userLogin);
             SavePuntuation(currentNick2, userSecondLogin, puntuationInGame2);
-            RestCredits(userSecondLogin);        
+            RestCredits(userSecondLogin);
+
+            // Load users too, to ordered users b 
+            LoadUsersOrdered();
+
+            // reinicio de la nave para evitar problemas de compatiblidad
+            shipPlayer.inmortality = true;
+            shipPlayer.isAlive = true;
+            shipPlayer.showDeadZone = false;
+            timeInmortality = 3.0f;
+            shipPlayer.centralPoint = {windowX / 2, windowY / 2, 1.0f};
+            puntuationInGame1 = 0;
+            puntuationInGame2 = 0;
+            ufo.centralPoint = {-50, 100};
+
+            // reinicio de level en cada repeticion de game
+            LevelConfig(actualLevel);
+            InitAsteroids();
+
+            // cambiamos a escena de highscores
+            currentGame.actualScene = HIGHSCORES;
+            shipPlayer.lifes = 4;
+            secondPlayerLifes = 4;
+            isMultiplayerActive = false;
         }
-        // Load users too, to ordered users b 
-        LoadUsersOrdered();
+    } else {
+        if (shipPlayer.lifes == 0) {
+            SavePuntuation(currentNick1, userLogin, puntuationInGame1);
+            RestCredits(userLogin);
 
-        // reinicio de la nave para evitar problemas de compatiblidad
-        shipPlayer.inmortality = true;
-        shipPlayer.isAlive = true;
-        shipPlayer.showDeadZone = false;
-        timeInmortality = 3.0f;
-        shipPlayer.centralPoint = {windowX / 2, windowY / 2, 1.0f};
-        puntuationInGame1 = 0;
-        puntuationInGame2 = 0;
-        ufo.centralPoint = {-50, 100};
+            // Load users too, to ordered users b 
+            LoadUsersOrdered();
 
-        // reinicio de level en cada repeticion de game
-        LevelConfig(actualLevel);
-        InitAsteroids();
+            // reinicio de la nave para evitar problemas de compatiblidad
+            shipPlayer.inmortality = true;
+            shipPlayer.isAlive = true;
+            shipPlayer.showDeadZone = false;
+            timeInmortality = 3.0f;
+            shipPlayer.centralPoint = {windowX / 2, windowY / 2, 1.0f};
+            puntuationInGame1 = 0;
+            puntuationInGame2 = 0;
+            ufo.centralPoint = {-50, 100};
 
-        // cambiamos a escena de highscores
-        currentGame.actualScene = HIGHSCORES;
-        shipPlayer.lifes = 4;
-        secondPlayerLifes = 4;
+            // reinicio de level en cada repeticion de game
+            LevelConfig(actualLevel);
+            InitAsteroids();
+
+            // cambiamos a escena de highscores
+            currentGame.actualScene = HIGHSCORES;
+            shipPlayer.lifes = 4;
+            secondPlayerLifes = 4;
+            isMultiplayerActive = false;
+        }
     }
+    
 }
 
 void InitFragments(Ship shipCopy) {
@@ -3292,6 +3341,9 @@ int esat::main(int argc, char **argv) {
                     }
                 }
 
+                printf("Credits Player 1: [%d] \n", creditsPlayer1);
+        printf("Credits Player 2: [%d] \n", creditsPlayer2);
+
                 bool ufoCollisionBulletAsteroid = false;
                 for (int i = 0; i < 12 && !ufoCollisionBulletAsteroid; i++) {
 
@@ -3353,6 +3405,7 @@ int esat::main(int argc, char **argv) {
                 }
 
                 bool ufoCollisionBulletShip = false;
+
                 for (int i = 0; i < 12 && !ufoCollisionBulletShip; i++) {
 
                     int nextI = (i + 1) % 12;
