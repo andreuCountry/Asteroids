@@ -2608,12 +2608,12 @@ void SavePuntuation(char* nick, char* user, int newPuntuation) {
 
     int lowestScore = 0;
 
-    if (count == 10) {
-        memcpy(&lowestScore, buffer + (count - 1) * 21, 4);
+    if (count >= 10) {
+        memcpy(&lowestScore, buffer + 9 * 21, 4);
     }
 
     // checkeo de si esta dentro de los minimos y si ademas es mayor que el ultimo
-    if (count < 10 || newPuntuation > lowestScore) {
+    if (count < 10 || newPuntuation >= lowestScore) {
         playerHighscored = true;
     }
 
