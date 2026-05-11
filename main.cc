@@ -2869,7 +2869,7 @@ void DrawParticles() {
             pointsFlex[j] = {tmp.x, tmp.y};
         }
 
-        esat::DrawSetFillColor(255, 255, 255, 255);
+        esat::DrawSetFillColor(255, 0, 0);
         esat::DrawSolidPath(&pointsFlex[0].x, 20);
     }
 }
@@ -2993,6 +2993,35 @@ void DrawUFOShoot(UFO* ufo) {
     esat::DrawSolidPath(line, 2, false);
 }
 
+void ClearMemory() {
+    memset(nickname, 0, 1);
+
+    memset(userPlayer, 0, 1);
+    memset(password, 0, 1);
+
+    memset(userLogin, 0, 1);
+    memset(passwordLogin, 0, 1);
+
+    memset(userSecondLogin, 0, 1);
+    memset(passwordSecondLogin, 0, 1);
+
+    memset(birthday, 0, 1);
+    memset(province, 0, 1);
+    memset(email, 0, 1);
+
+    memset(nicknameEdit, 0, 1);
+
+    memset(userPlayerEdit, 0, 1);
+    memset(passwordEdit, 0, 1);
+
+    memset(birthdayEdit, 0, 1);
+    memset(provinceEdit, 0, 1);
+    memset(emailEdit, 0, 1);
+
+    memset(currentNick1, 0, 4);
+    memset(currentNick2, 0, 4);
+}
+
 int esat::main(int argc, char **argv) {
 
     esat::WindowInit(windowX, windowY);
@@ -3006,7 +3035,9 @@ int esat::main(int argc, char **argv) {
     esat::Mat3 matrizLittle = UpdateFigurita({1.0f, 1.0f}, 0.0f, {0.0f, 0.0f});
     Ship shipCopy;
 
-    bool multiplayer = false;
+
+    ClearMemory();
+
 
     while (esat::WindowIsOpened() && !esat::IsSpecialKeyDown(esat::kSpecialKey_Escape)) {
         last_time = esat::Time();
@@ -3059,7 +3090,6 @@ int esat::main(int argc, char **argv) {
                 HandleLogin();
             break;
             case Scenes::REGISTER_MENU:
-
                 DrawRegisterMenu();
                 HandleTextInputDynamic();
             break;
@@ -3068,13 +3098,11 @@ int esat::main(int argc, char **argv) {
                 DrawAskGameplay();
                 HandleAskGameplay();
 
-                multiplayer = false;
             break;
             case Scenes::ASK_SECOND_LOGIN:
                 DrawAskSecondLogin();
                 HandleSecondLogin();
 
-                multiplayer = true;
             break;
             case Scenes::GAMEPLAY:
  
@@ -3406,9 +3434,9 @@ int esat::main(int argc, char **argv) {
 
                 bool ufoCollisionBulletShip = false;
 
-                for (int i = 0; i < 12 && !ufoCollisionBulletShip; i++) {
+                for (int i = 0; i < 5 && !ufoCollisionBulletShip; i++) {
 
-                    int nextI = (i + 1) % 12;
+                    int nextI = (i + 1) % 5;
 
                     //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.points[i].x + shipPlayer.centralPoint.x, shipPlayer.points[i].y + shipPlayer.centralPoint.y);
                     //printf("Puntos asteroids: [%f]   ----    [%f] \n", asteroids[j].vertices[k].x + + asteroids[j].centralPoint.x, asteroids[j].vertices[k].y + + asteroids[j].centralPoint.y);
@@ -3420,6 +3448,13 @@ int esat::main(int argc, char **argv) {
                     esat::Vec2 point2 = {centralPointBullet.x - (ufo.shoot.vectorDirector.x * 2), centralPointBullet.y - (ufo.shoot.vectorDirector.y * 2)};
                     esat::Vec2 point3 = {shipPlayer.points[i].x + centralPointShip.x, shipPlayer.points[i].y + centralPointShip.y};
                     esat::Vec2 point4 = {shipPlayer.points[nextI].x + centralPointShip.x, shipPlayer.points[nextI].y + centralPointShip.y};
+
+                    //esat::DrawSetStrokeColor(255,0,0);
+
+                    /*esat::DrawLine(
+                        point1.x, point1.y,
+                        point2.x, point2.y
+                    );*/
                                     
                     if (CollisionDetected(point1, point2, point3, point4) && !shipPlayer.inmortality) {
                         ufo.shoot.isVisible = false;
