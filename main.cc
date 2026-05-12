@@ -53,7 +53,6 @@ int provinceLength = 0, provinceMaxLength = 15;
 char* email = (char*) malloc (1);
 int emailLength = 0, emailMaxLength = 15;
 
-int credits = 0;
 int creditsMax = 999999;
 
 char* nicknameEdit = (char*) malloc (1);
@@ -994,7 +993,7 @@ void ControlsDetect() {
                 } else if (stickPosition.y == windowY / 1.9f) {
                     stickPosition.y = windowY / 1.7f;
                 } else if (stickPosition.y == windowY / 1.7f) {
-                    stickPosition.y = windowY / 1.5f;
+                    stickPosition.y = windowY - 50;
                 } else if (stickPosition.y == windowY - 50) {
                     stickPosition.y = windowY / 4;
                 } else {
@@ -1067,7 +1066,7 @@ void SaveUser() {
     user.birthday = birthday;
     user.province = province;
     user.email = email;
-    user.credits = credits;
+    user.credits = 10;
     lastIdInserted++;
     user.id = lastIdInserted;
     user.isDeleted = false;
@@ -1386,23 +1385,6 @@ void HandleTextInputDynamic() {
             && emailLength > 0) {
             emailLength--;
             *(email+emailLength) = '\0';
-        }
-    }
-
-    if (currentField == 6) {
-        for (int i = '0'; i <= '9'; i++) {
-            if (esat::IsKeyDown(i)) {
-                int digit = i - '0';
-
-                if (credits <= creditsMax / 10) {
-                    credits = credits * 10 + digit;
-                }
-            }
-        }
-
-        // BORRAR (quitar última cifra)
-        if (esat::IsSpecialKeyDown(esat::kSpecialKey_Delete)) {
-            credits = credits / 10;
         }
     }
 
@@ -1974,8 +1956,6 @@ void DrawRegisterMenu() {
 
     esat::DrawText(windowX / 5, windowY / 1.7f, "EMAIL: ");
 
-    esat::DrawText(windowX / 5, windowY / 1.5f, "CREDITS: ");
-
     esat::DrawSetTextSize(30);
     esat::DrawText(windowX / 2.5f, windowY - 50, "SAVE");
 
@@ -1996,10 +1976,6 @@ void DrawRegisterMenu() {
     esat::DrawText(windowX / 2, windowY / 2.2f, birthday);
     esat::DrawText(windowX / 2, windowY / 1.9f, province);
     esat::DrawText(windowX / 2, windowY /1.7f, email);
-
-    char creditsText[20];
-    sprintf(creditsText, "%d", credits);
-    esat::DrawText(windowX / 2, windowY / 1.5f, creditsText);
 
 
     DrawBack();
