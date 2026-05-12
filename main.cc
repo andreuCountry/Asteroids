@@ -339,10 +339,10 @@ void InitShip() {
 
     // inicializamos memory para que tenga siempre algo y no crashea, se podria iniciar a nullptr
     for (int i = 0; i < shipPlayer.numberShoots; i++) {
-        shipPlayer.shoots[i].isVisible = false;
+        (*(shipPlayer.shoots + i)).isVisible = false;
 
-        shipPlayer.shoots[i].points = (esat::Vec3*)malloc(sizeof(esat::Vec3) * 1);
-        shipPlayer.shoots[i].centralPoint = {shipPlayer.centralPoint.x, shipPlayer.centralPoint.y};
+        (*(shipPlayer.shoots + i)).points = (esat::Vec3*)malloc(sizeof(esat::Vec3) * 1);
+        (*(shipPlayer.shoots + i)).centralPoint = {shipPlayer.centralPoint.x, shipPlayer.centralPoint.y};
     }
 }
 
@@ -412,12 +412,12 @@ void LoadUsersLogin() {
     int index = 0;
 
     while (fread(&id, sizeof(id), 1, file) == 1) {
-        fread(tmpNick, 3, 1, file); tmpNick[3] = '\0';
-        fread(tmpUser, 14, 1, file); tmpUser[14] = '\0';
-        fread(tmpPass, 14, 1, file); tmpPass[14] = '\0';
-        fread(tmpBirth, 10, 1, file); tmpBirth[10] = '\0';
-        fread(tmpProvince, 14, 1, file); tmpProvince[14] = '\0';
-        fread(tmpEmail, 14, 1, file); tmpEmail[14] = '\0';
+        fread(tmpNick, 3, 1, file); *(tmpNick + 3) = '\0';
+        fread(tmpUser, 14, 1, file); *(tmpUser + 14) = '\0';
+        fread(tmpPass, 14, 1, file); *(tmpPass + 14) = '\0';
+        fread(tmpBirth, 10, 1, file); *(tmpBirth + 10) = '\0';
+        fread(tmpProvince, 14, 1, file); *(tmpProvince + 14) = '\0';
+        fread(tmpEmail, 14, 1, file); *(tmpEmail + 14) = '\0';
         fread(&admin, sizeof(admin), 1, file);
         fread(&credits, sizeof(credits), 1, file);
         fread(&isDeleted, sizeof(isDeleted), 1, file);
@@ -481,9 +481,9 @@ void LoadUsersOrdered() {
         }
 
         fread(tmpNick, 3, 1, filePuntuation); 
-        tmpNick[3] = '\0';
+        *(tmpNick + 3) = '\0';
         fread(tmpUser, 14, 1, filePuntuation); 
-        tmpUser[14] = '\0';
+        *(tmpUser + 14) = '\0';
 
         int pos = 0;
         for (; pos < count; pos++) {
@@ -542,7 +542,7 @@ void CalculateAsteroidsPerLevel(int level) {
             case 3: type = AsteroidsType::V4; asteroidsV4Count++; break;
         }
 
-        asteroids[indexAsteroid].type = type;
+        (*(asteroids + indexAsteroid)).type = type;
 
         indexAsteroid++;
     }
@@ -554,7 +554,7 @@ void InitAsteroids() {
 
         int count = 0;
 
-        switch (asteroids[i].type) {
+        switch ((*(asteroids + i)).type) {
             case V1:
                 count = numPointsAsteroidsV1;
                 break;
@@ -569,13 +569,13 @@ void InitAsteroids() {
                 break;
         }
 
-        asteroids[i].numVertices = count;
+        (*(asteroids + i)).numVertices = count;
 
-        asteroids[i].vertices = (esat::Vec3*)malloc(sizeof(esat::Vec3) * count);
+        (*(asteroids + i)).vertices = (esat::Vec3*)malloc(sizeof(esat::Vec3) * count);
 
-        asteroids[i].level = AsteroidsLevel::LEVEL_3;
-        asteroids[i].isAlive = true;
-        asteroids[i].canCollide = true;
+        (*(asteroids + i)).level = AsteroidsLevel::LEVEL_3;
+        (*(asteroids + i)).isAlive = true;
+        (*(asteroids + i)).canCollide = true;
 
         float speedX = rand()%2000 / 1000.0f;
         float speedY = rand()%2000 / 1000.0f;
@@ -585,17 +585,17 @@ void InitAsteroids() {
         float centralPointX = rand()% (int) windowX;
         float centralPointY = rand()% (int) windowY;
 
-        asteroids[i].direction.x = cosf(speedX * (mOrD == 1 ? 1 : -1));
-        asteroids[i].direction.y = sinf(speedY * (mOrD == 1 ? 1 : -1));
+        (*(asteroids + i)).direction.x = cosf(speedX * (mOrD == 1 ? 1 : -1));
+        (*(asteroids + i)).direction.y = sinf(speedY * (mOrD == 1 ? 1 : -1));
 
-        asteroids[i].centralPoint.x = centralPointX;
-        asteroids[i].centralPoint.y = centralPointY;
+        (*(asteroids + i)).centralPoint.x = centralPointX;
+        (*(asteroids + i)).centralPoint.y = centralPointY;
 
-        switch (asteroids[i].type) {
-            case V1: VertsAsteroid1(asteroids[i].vertices); break;
-            case V2: VertsAsteroid2(asteroids[i].vertices); break;
-            case V3: VertsAsteroid3(asteroids[i].vertices); break;
-            case V4: VertsAsteroid4(asteroids[i].vertices); break;
+        switch ((*(asteroids + i)).type) {
+            case V1: VertsAsteroid1((*(asteroids + i)).vertices); break;
+            case V2: VertsAsteroid2((*(asteroids + i)).vertices); break;
+            case V3: VertsAsteroid3((*(asteroids + i)).vertices); break;
+            case V4: VertsAsteroid4((*(asteroids + i)).vertices); break;
         }
     }
 }
@@ -643,9 +643,9 @@ void ResetConfig() {
     if (asteroids != nullptr) {
 
         for (int i = 0; i < totalAsteroidsPerLevels; i++) {
-            if (asteroids[i].vertices != nullptr) {
-                free(asteroids[i].vertices);
-                asteroids[i].vertices = nullptr;
+            if ((*(asteroids + i)).vertices != nullptr) {
+                free((*(asteroids + i)).vertices);
+                (*(asteroids + i)).vertices = nullptr;
             }
         }
 
@@ -689,7 +689,7 @@ void LevelConfig(int level) {
     }
 
     for (int i = 0; i < totalAsteroidsPerLevels; i++) {
-        asteroids[i].vertices = nullptr;
+        (*(asteroids + i)).vertices = nullptr;
     }
 
     CalculateAsteroidsPerLevel(level);
@@ -699,9 +699,9 @@ void InitCircle() {
     float angle = 6.283185f / (float)kCirclePoints;
 
     for (int i = 0; i < kCirclePoints; ++i) {
-        g_circle[i].x = cosf(angle * i);
-        g_circle[i].y = sinf(angle * i);
-        g_circle[i].z = 1.0f;
+        (*(g_circle + i)).x = cosf(angle * i);
+        (*(g_circle + i)).y = sinf(angle * i);
+        (*(g_circle + i)).z = 1.0f;
     }
 }
 
@@ -774,13 +774,13 @@ void ShowPlayersAdminSection() {
         char* u = ((char*)usersToShow) + i * 83;
 
         memcpy(tmpNick, u + OFFSET_NICK, 3);
-        tmpNick[3] = '\0';
+        *(tmpNick + 3) = '\0';
 
         memcpy(tmpUser, u + OFFSET_USER, 14);
-        tmpUser[14] = '\0';
+        *(tmpUser + 14) = '\0';
 
         memcpy(tmpPass, u + OFFSET_PASS, 14);
-        tmpPass[14] = '\0';
+        *(tmpPass + 14) = '\0';
 
         esat::DrawText(120, y, tmpNick);
         esat::DrawText(120 + 200, y, tmpUser);
@@ -817,16 +817,16 @@ void ShowOrderedPlayersScore() {
         memcpy(&puntuation, u + 0, 4);
 
         memcpy(tmpNick, u + 4, 3);
-        tmpNick[3] = '\0';
+        *(tmpNick + 3) = '\0';
 
         memcpy(tmpUser, u + 7, 14);
-        tmpUser[14] = '\0';
+        *(tmpUser + 14) = '\0';
 
         esat::DrawText(250, y, tmpNick);
         esat::DrawText(250 + 100, y, tmpUser);
 
         // romper bucle para que no muestre basura la conversacion de la puntuation en char *
-        if (tmpNick[0] == '\0') {
+        if (*(tmpNick + 0) == '\0') {
             continue;
         }
 
@@ -1132,12 +1132,12 @@ bool CheckOptionalUser(bool secondUserEnable) {
 
     FILE* f = fopen("users.dat", "rb");
     while (fread(&id, sizeof(id), 1, f) == 1 && !isValid) {
-        fread(tmpNick, 3, 1, f); tmpNick[3] = '\0';
-        fread(tmpUser, 14, 1, f); tmpUser[14] = '\0';
-        fread(tmpPass, 14, 1, f); tmpPass[14] = '\0';
-        fread(tmpBirth, 10, 1, f); tmpBirth[10] = '\0';
-        fread(tmpProvince, 14, 1, f); tmpProvince[14] = '\0';
-        fread(tmpEmail, 14, 1, f); tmpEmail[14] = '\0';
+        fread(tmpNick, 3, 1, f); *(tmpNick + 3) = '\0';
+        fread(tmpUser, 14, 1, f); *(tmpUser + 14) = '\0';
+        fread(tmpPass, 14, 1, f); *(tmpPass + 14) = '\0';
+        fread(tmpBirth, 10, 1, f); *(tmpBirth + 10) = '\0';
+        fread(tmpProvince, 14, 1, f); *(tmpProvince + 14) = '\0';
+        fread(tmpEmail, 14, 1, f); *(tmpEmail + 14) = '\0';
         fread(&admin, sizeof(admin), 1, f);
         fread(&credits, sizeof(credits), 1, f);
         // asignacion de creditos para modificarlos despues en inicio de partida
@@ -1927,8 +1927,12 @@ void DrawLoadRegister() {
 
     // tema de password
     char hiddenPass[50] = "";
-    for(int i=0; i<passwordLoginLength; i++) *(hiddenPass+i) = '*';
-    hiddenPass[passwordLoginLength] = '\0';
+
+    for (int i = 0; i < passwordLoginLength; i++) {
+        *(hiddenPass + i) = '*';
+    }
+
+    *(hiddenPass + passwordLoginLength) = '\0';
 
     esat::DrawSetTextSize(40);
     esat::DrawText(windowX / 2, windowY / 1.9f, hiddenPass);
@@ -1967,7 +1971,7 @@ void DrawRegisterMenu() {
 
     char hiddenPass[50] = "";
     for(int i=0; i<passwordLength; i++) *(hiddenPass+i) = '*';
-    hiddenPass[passwordLength] = '\0';
+    *(hiddenPass + passwordLength) = '\0';
 
     esat::DrawSetTextSize(20);
     esat::DrawText(windowX / 2, windowY / 2.6f, hiddenPass);
@@ -2040,7 +2044,7 @@ void DrawAskSecondLogin() {
     // tema de password
     char hiddenPass[50] = "";
     for(int i=0; i<passwordSecondLoginLength; i++) *(hiddenPass+i) = '*';
-    hiddenPass[passwordSecondLoginLength] = '\0';
+    *(hiddenPass + passwordSecondLoginLength) = '\0';
 
     esat::DrawSetTextSize(40);
     esat::DrawText(windowX / 2, windowY / 1.9f, hiddenPass);
@@ -2084,7 +2088,7 @@ void DrawEditSection() {
     // tema de password
     char hiddenPass[50] = "";
     for(int i=0; i<passwordEditLength; i++) *(hiddenPass+i) = '*';
-    hiddenPass[passwordEditLength] = '\0';
+    *(hiddenPass + passwordEditLength) = '\0';
 
     esat::DrawSetTextSize(20);
     esat::DrawText(windowX / 2, windowY / 2.6f, hiddenPass);
@@ -2123,9 +2127,9 @@ void DrawFigurita(esat::Mat3 m) {
 
     for (int i = 0; i < numPoints; i++) {
         // Necesitamos esto para transformar los Mat3 en Vec3, para dibujar
-        esat::Vec3 tmp = esat::Mat3TransformVec3(m, shipPlayer.points[i]);
-        points[i*2] = tmp.x;
-        points[i*2+1] = tmp.y;
+        esat::Vec3 tmp = esat::Mat3TransformVec3(m, *(shipPlayer.points + i));
+        *(points + i * 2) = tmp.x;
+        *(points + i * 2 + 1) = tmp.y;
     }
 
     // check inmortality values
@@ -2176,19 +2180,19 @@ void UpdateGame() {
 void UpdateAsteroids() {
     for (int i = 0; i < totalAsteroidsPerLevels; i++) {
 
-        asteroids[i].centralPoint.x += asteroids[i].direction.x;
-        asteroids[i].centralPoint.y += asteroids[i].direction.y;
+        (*(asteroids + i)).centralPoint.x += (*(asteroids + i)).direction.x;
+        (*(asteroids + i)).centralPoint.y += (*(asteroids + i)).direction.y;
 
-        if (asteroids[i].centralPoint.x > windowX) {
-            asteroids[i].centralPoint.x = 0;
-        } else if (asteroids[i].centralPoint.x < 0) {
-            asteroids[i].centralPoint.x = windowX;
+        if ((*(asteroids + i)).centralPoint.x > windowX) {
+            (*(asteroids + i)).centralPoint.x = 0;
+        } else if ((*(asteroids + i)).centralPoint.x < 0) {
+            (*(asteroids + i)).centralPoint.x = windowX;
         }
 
-        if (asteroids[i].centralPoint.y > windowY) {
-            asteroids[i].centralPoint.y = 0;
-        } else if (asteroids[i].centralPoint.y < 0) {
-            asteroids[i].centralPoint.y = windowY;
+        if ((*(asteroids + i)).centralPoint.y > windowY) {
+            (*(asteroids + i)).centralPoint.y = 0;
+        } else if ((*(asteroids + i)).centralPoint.y < 0) {
+            (*(asteroids + i)).centralPoint.y = windowY;
         }
     }
 }
@@ -2214,8 +2218,8 @@ void DrawAsteroidsVer(Asteroids* asteroid) {
             break;
         }
 
-        points[i * 2] = (asteroid->vertices[i].x  * scale) + asteroid->centralPoint.x;
-        points[i * 2 + 1] = (asteroid->vertices[i].y * scale) + asteroid->centralPoint.y;
+        *(points + i * 2) = ((*(asteroid->vertices + i)).x  * scale) + asteroid->centralPoint.x;
+        *(points + i * 2 + 1) = ((*(asteroid->vertices + i)).y * scale) + asteroid->centralPoint.y;
     }
 
     esat::DrawSolidPath(points, asteroid->numVertices, true);
@@ -2226,21 +2230,21 @@ void FireShoot() {
     float offsetInsideShip = 20.0f;
 
     for (int i = 0; i < shipPlayer.numberShoots; i++) {
-        if (!shipPlayer.shoots[i].isVisible) {
+        if (!(*(shipPlayer.shoots + i)).isVisible) {
 
-            shipPlayer.shoots[i].isVisible = true;
+            (*(shipPlayer.shoots + i)).isVisible = true;
 
-            // no puedo usar shipPlayer.points[lo que sea], porque esta en local, no en global
+            // no puedo usar shipPlayer.*(points + lo que sea), porque esta en local, no en global
             // creamos offset fictio usando el vector director
-            shipPlayer.shoots[i].points[0].x = shipPlayer.centralPoint.x + cosf(shipPlayer.angle) * offsetInsideShip;
-            shipPlayer.shoots[i].points[0].y = shipPlayer.centralPoint.y + sinf(shipPlayer.angle) * offsetInsideShip;
-            shipPlayer.shoots[i].points[0].z = 1.0f;
+            (*(shipPlayer.shoots + i)).points->x = shipPlayer.centralPoint.x + cosf(shipPlayer.angle) * offsetInsideShip;
+            (*(shipPlayer.shoots + i)).points->y = shipPlayer.centralPoint.y + sinf(shipPlayer.angle) * offsetInsideShip;
+            (*(shipPlayer.shoots + i)).points->z = 1.0f;
 
-            shipPlayer.shoots[i].vectorDirector.x = cosf(shipPlayer.angle) * bulletSpeed + shipPlayer.speed.x;
-            shipPlayer.shoots[i].vectorDirector.y = sinf(shipPlayer.angle) * bulletSpeed + shipPlayer.speed.y;
+            (*(shipPlayer.shoots + i)).vectorDirector.x = cosf(shipPlayer.angle) * bulletSpeed + shipPlayer.speed.x;
+            (*(shipPlayer.shoots + i)).vectorDirector.y = sinf(shipPlayer.angle) * bulletSpeed + shipPlayer.speed.y;
 
-            shipPlayer.shoots[i].distanceTravelled = 0.0f;
-            shipPlayer.shoots[i].maxDistanceTravelled = 400.0f;
+            (*(shipPlayer.shoots + i)).distanceTravelled = 0.0f;
+            (*(shipPlayer.shoots + i)).maxDistanceTravelled = 400.0f;
 
             break;
         }
@@ -2253,38 +2257,38 @@ void UpdateShoots() {
 
     for (int i = 0; i < shipPlayer.numberShoots; i++) {
 
-        if (shipPlayer.shoots[i].isVisible) {
+        if ((*(shipPlayer.shoots + i)).isVisible) {
 
-            float distanceX = shipPlayer.shoots[i].vectorDirector.x;
-            float distanceY = shipPlayer.shoots[i].vectorDirector.y;
+            float distanceX = (*(shipPlayer.shoots + i)).vectorDirector.x;
+            float distanceY = (*(shipPlayer.shoots + i)).vectorDirector.y;
 
-            shipPlayer.shoots[i].points[0].x += distanceX;
-            shipPlayer.shoots[i].points[0].y += distanceY;
+            (*(shipPlayer.shoots + i)).points->x += distanceX;
+            (*(shipPlayer.shoots + i)).points->y += distanceY;
 
-            shipPlayer.shoots[i].distanceTravelled += speed;
+            (*(shipPlayer.shoots + i)).distanceTravelled += speed;
 
-            if (shipPlayer.shoots[i].distanceTravelled >= shipPlayer.shoots[i].maxDistanceTravelled) {
+            if ((*(shipPlayer.shoots + i)).distanceTravelled >= (*(shipPlayer.shoots + i)).maxDistanceTravelled) {
 
-                shipPlayer.shoots[i].isVisible = false;
+                (*(shipPlayer.shoots + i)).isVisible = false;
 
-                shipPlayer.shoots[i].distanceTravelled = 0.0f;
+                (*(shipPlayer.shoots + i)).distanceTravelled = 0.0f;
 
-                shipPlayer.shoots[i].points[0].x = shipPlayer.points[0].x;
-                shipPlayer.shoots[i].points[0].y = shipPlayer.points[0].y;
+                (*(shipPlayer.shoots + i)).points->x = (*(shipPlayer.points + 0)).x;
+                (*(shipPlayer.shoots + i)).points->y = (*(shipPlayer.points + 0)).y;
 
                 // para sacar colisiones necesitamos un punto central fijo que se mueva dinamicamente
             }
 
-            if (shipPlayer.shoots[i].points[0].x > windowX) {
-                shipPlayer.shoots[i].points[0].x = 0;
-            } else if (shipPlayer.shoots[i].points[0].x < 0) {
-                shipPlayer.shoots[i].points[0].x = windowX;
+            if ((*(shipPlayer.shoots + i)).points->x > windowX) {
+                (*(shipPlayer.shoots + i)).points->x = 0;
+            } else if ((*(shipPlayer.shoots + i)).points->x < 0) {
+                (*(shipPlayer.shoots + i)).points->x = windowX;
             }
 
-            if (shipPlayer.shoots[i].points[0].y > windowY) {
-                shipPlayer.shoots[i].points[0].y = 0;
-            } else if (shipPlayer.shoots[i].points[0].y < 0) {
-                shipPlayer.shoots[i].points[0].y = windowY;
+            if ((*(shipPlayer.shoots + i)).points->y > windowY) {
+                (*(shipPlayer.shoots + i)).points->y = 0;
+            } else if ((*(shipPlayer.shoots + i)).points->y < 0) {
+                (*(shipPlayer.shoots + i)).points->y = windowY;
             }
         }
 
@@ -2333,14 +2337,14 @@ void DrawShoots() {
     esat::DrawSetStrokeColor(255, 255, 255, 255);
 
     for (int i = 0; i < shipPlayer.numberShoots; i++) {
-        if (shipPlayer.shoots[i].isVisible) {
+        if ((*(shipPlayer.shoots + i)).isVisible) {
 
             // punta de la nave
-            float distanceX1 = shipPlayer.shoots[i].points[0].x;
-            float distanceY1 = shipPlayer.shoots[i].points[0].y;
+            float distanceX1 = (*(shipPlayer.shoots + i)).points->x;
+            float distanceY1 = (*(shipPlayer.shoots + i)).points->y;
 
-            float distanceX2 = shipPlayer.shoots[i].vectorDirector.x;
-            float distanceY2 = shipPlayer.shoots[i].vectorDirector.y;
+            float distanceX2 = (*(shipPlayer.shoots + i)).vectorDirector.x;
+            float distanceY2 = (*(shipPlayer.shoots + i)).vectorDirector.y;
 
             float line[4] = {
                 distanceX1, distanceY1,
@@ -2354,8 +2358,8 @@ void DrawShoots() {
 
 void DrawAsteroids() {
     for (int i = 0; i < totalAsteroidsPerLevels; i++) {
-        if (asteroids[i].isAlive) {
-            DrawAsteroidsVer(&asteroids[i]);
+        if ((*(asteroids + i)).isAlive) {
+            DrawAsteroidsVer(&*(asteroids + i));
         }
     }
 }
@@ -2379,30 +2383,30 @@ void ActivateNewAsteroid(Asteroids asteroid) {
         break;
     }
 
-    asteroids[totalAsteroidsPerLevels].numVertices = count;
+    (*(asteroids + totalAsteroidsPerLevels)).numVertices = count;
 
-    asteroids[totalAsteroidsPerLevels].vertices = (esat::Vec3*)malloc(sizeof(esat::Vec3) * count);
+    (*(asteroids + totalAsteroidsPerLevels)).vertices = (esat::Vec3*)malloc(sizeof(esat::Vec3) * count);
 
-    asteroids[totalAsteroidsPerLevels].isAlive = true;
-    asteroids[totalAsteroidsPerLevels].canCollide = true;
-    asteroids[totalAsteroidsPerLevels].level = asteroid.level;
-    asteroids[totalAsteroidsPerLevels].type = asteroid.type;
+    (*(asteroids + totalAsteroidsPerLevels)).isAlive = true;
+    (*(asteroids + totalAsteroidsPerLevels)).canCollide = true;
+    (*(asteroids + totalAsteroidsPerLevels)).level = asteroid.level;
+    (*(asteroids + totalAsteroidsPerLevels)).type = asteroid.type;
 
     float speedX = rand()%2000 / 1000.0f;
     float speedY = rand()%2000 / 1000.0f;
 
     int mOrD = rand()%2;
 
-    asteroids[totalAsteroidsPerLevels].direction.x = cosf(speedX * (mOrD == 1 ? 1 : -1));
-    asteroids[totalAsteroidsPerLevels].direction.y = sinf(speedY * (mOrD == 1 ? 1 : -1));
+    (*(asteroids + totalAsteroidsPerLevels)).direction.x = cosf(speedX * (mOrD == 1 ? 1 : -1));
+    (*(asteroids + totalAsteroidsPerLevels)).direction.y = sinf(speedY * (mOrD == 1 ? 1 : -1));
 
-    asteroids[totalAsteroidsPerLevels].centralPoint = asteroid.centralPoint;
+    (*(asteroids + totalAsteroidsPerLevels)).centralPoint = asteroid.centralPoint;
 
-    switch (asteroids[totalAsteroidsPerLevels].type) {
-        case V1: VertsAsteroid1(asteroids[totalAsteroidsPerLevels].vertices); break;
-        case V2: VertsAsteroid2(asteroids[totalAsteroidsPerLevels].vertices); break;
-        case V3: VertsAsteroid3(asteroids[totalAsteroidsPerLevels].vertices); break;
-        case V4: VertsAsteroid4(asteroids[totalAsteroidsPerLevels].vertices); break;
+    switch ((*(asteroids + totalAsteroidsPerLevels)).type) {
+        case V1: VertsAsteroid1((*(asteroids + totalAsteroidsPerLevels)).vertices); break;
+        case V2: VertsAsteroid2((*(asteroids + totalAsteroidsPerLevels)).vertices); break;
+        case V3: VertsAsteroid3((*(asteroids + totalAsteroidsPerLevels)).vertices); break;
+        case V4: VertsAsteroid4((*(asteroids + totalAsteroidsPerLevels)).vertices); break;
     }
 
     totalAsteroidsPerLevels++;
@@ -2525,9 +2529,9 @@ void DrawLifes(esat::Mat3 m) {
 
     for (int i = 0; i < numPoints; i++) {
         // Necesitamos esto para transformar los Mat3 en Vec3, para dibujar
-        esat::Vec3 tmp = esat::Mat3TransformVec3(m, shipPlayer.points[i]);
-        points[i*2] = tmp.x;
-        points[i*2+1] = tmp.y;
+        esat::Vec3 tmp = esat::Mat3TransformVec3(m, (*(shipPlayer.points + i)));
+        *(points + i*2) = tmp.x;
+        *(points + i*2+1) = tmp.y;
     }
 
     esat::DrawSolidPath(points, numPoints, true);
@@ -2619,7 +2623,7 @@ void RestCredits(char* username) {
 
     int id;
     int credits;
-    char user[14];
+    char *user = (char*)malloc(14 * sizeof(char));
 
     while (fread(&id, sizeof(int), 1, file) == 1) {
 
@@ -2739,18 +2743,18 @@ void InitFragments(Ship shipCopy) {
         // siguiente vertice al que apunta
         int next = (i + 1) % 5;
 
-        fragments[i].point1 = {
-            shipCopy.points[i].x + shipCopy.centralPoint.x,
-            shipCopy.points[i].y + shipCopy.centralPoint.y
+        (*(fragments + i)).point1 = {
+            (*(shipCopy.points + i)).x + shipCopy.centralPoint.x,
+            (*(shipCopy.points + i)).y + shipCopy.centralPoint.y
         };
 
-        fragments[i].point2 = {
-            shipCopy.points[next].x + shipCopy.centralPoint.x,
-            shipCopy.points[next].y + shipCopy.centralPoint.y
+        (*(fragments + i)).point2 = {
+            (*(shipCopy.points + next)).x + shipCopy.centralPoint.x,
+            (*(shipCopy.points + next)).y + shipCopy.centralPoint.y
         };
 
         // usamos radianes para el angulo esta vez
-        fragments[i].angle = (rand() % 360) * 3.1416f / 180.0f;
+        (*(fragments + i)).angle = (rand() % 360) * 3.1416f / 180.0f;
     }
 }
 
@@ -2765,15 +2769,15 @@ void DrawDeadShip(float deltaTime) {
 
          for (int i = 0; i < 5; i++) {
 
-            fragments[i].point1.x += cosf(fragments[i].angle) * deltaTime * speed;
-            fragments[i].point1.y += sinf(fragments[i].angle) * deltaTime * speed;
+            (*(fragments + i)).point1.x += cosf((*(fragments + i)).angle) * deltaTime * speed;
+            (*(fragments + i)).point1.y += sinf((*(fragments + i)).angle) * deltaTime * speed;
 
-            fragments[i].point2.x += cosf(fragments[i].angle) * deltaTime * speed;
-            fragments[i].point2.y += sinf(fragments[i].angle) * deltaTime * speed;
+            (*(fragments + i)).point2.x += cosf((*(fragments + i)).angle) * deltaTime * speed;
+            (*(fragments + i)).point2.y += sinf((*(fragments + i)).angle) * deltaTime * speed;
 
             float points[4] = {
-                fragments[i].point1.x, fragments[i].point1.y,
-                fragments[i].point2.x, fragments[i].point2.y
+                (*(fragments + i)).point1.x, (*(fragments + i)).point1.y,
+                (*(fragments + i)).point2.x, (*(fragments + i)).point2.y
             };
 
             esat::DrawSolidPath(points, 2);
@@ -2786,15 +2790,15 @@ void SpawnAsteroidParticles(esat::Vec2 center) {
 
     for (int i = 0; i < 12; i++) {
 
-        fragmentsAsteroids[i].point1 = center;
+        (*(fragmentsAsteroids + i)).point1 = center;
 
         float angle = (rand() % 360) * 3.1416f / 180.0f;
 
-        fragmentsAsteroids[i].angle = angle;
-        fragmentsAsteroids[i].speed = 50.0f;
-        fragmentsAsteroids[i].life = 1.5f;
+        (*(fragmentsAsteroids + i)).angle = angle;
+        (*(fragmentsAsteroids + i)).speed = 50.0f;
+        (*(fragmentsAsteroids + i)).life = 1.5f;
 
-        fragmentsAsteroids[i].isAlive = true;
+        (*(fragmentsAsteroids + i)).isAlive = true;
     }
 }
 
@@ -2802,16 +2806,16 @@ void UpdateParticles(float deltaTime) {
 
     for (int i = 0; i < 12; i++) {
 
-        if (!fragmentsAsteroids[i].isAlive) continue;
+        if (!(*(fragmentsAsteroids + i)).isAlive) continue;
 
-        fragmentsAsteroids[i].point1.x += cosf(fragmentsAsteroids[i].angle) * fragmentsAsteroids[i].speed * deltaTime;
-        fragmentsAsteroids[i].point1.y += sinf(fragmentsAsteroids[i].angle) * fragmentsAsteroids[i].speed * deltaTime;
+        (*(fragmentsAsteroids + i)).point1.x += cosf((*(fragmentsAsteroids + i)).angle) * (*(fragmentsAsteroids + i)).speed * deltaTime;
+        (*(fragmentsAsteroids + i)).point1.y += sinf((*(fragmentsAsteroids + i)).angle) * (*(fragmentsAsteroids + i)).speed * deltaTime;
 
-        fragmentsAsteroids[i].life += deltaTime;
-        // printf("[%f] \n", fragmentsAsteroids[i].life);
+        (*(fragmentsAsteroids + i)).life += deltaTime;
+        // printf("[%f] \n", *(fragmentsAsteroids + i).life);
 
-        if (fragmentsAsteroids[i].life <= 0) {
-            fragmentsAsteroids[i].isAlive = false;
+        if ((*(fragmentsAsteroids + i)).life <= 0) {
+            (*(fragmentsAsteroids + i)).isAlive = false;
         }
     }
 }
@@ -2822,7 +2826,7 @@ void DrawParticles() {
 
     for (int i = 0; i < 12; i++) {
 
-        if (!fragmentsAsteroids[i].isAlive) continue;
+        if (!(*(fragmentsAsteroids + i)).isAlive) continue;
 
         esat::Mat3 m = esat::Mat3Identity();
 
@@ -2832,21 +2836,21 @@ void DrawParticles() {
 
         m = esat::Mat3Multiply(
             esat::Mat3Translate(
-                fragmentsAsteroids[i].point1.x,
-                fragmentsAsteroids[i].point1.y
+                (*(fragmentsAsteroids + i)).point1.x,
+                (*(fragmentsAsteroids + i)).point1.y
             ),
             m
         );
 
         for (int j = 0; j < 20; j++) {
 
-            esat::Vec3 tmp = esat::Mat3TransformVec3(m, g_circle[j]);
+            esat::Vec3 tmp = esat::Mat3TransformVec3(m, *(g_circle + j));
 
-            pointsFlex[j] = {tmp.x, tmp.y};
+            *(pointsFlex + j) = {tmp.x, tmp.y};
         }
 
         esat::DrawSetFillColor(255, 0, 0);
-        esat::DrawSolidPath(&pointsFlex[0].x, 20);
+        esat::DrawSolidPath(&(*(pointsFlex + 0)).x, 20);
     }
 }
 
@@ -2874,9 +2878,9 @@ void FireUFOShoot(UFO* ufo) {
     ufo->shoot.isVisible = true;
 
     // posición inicial de la bala
-    ufo->shoot.points[0].x = ufo->centralPoint.x;
-    ufo->shoot.points[0].y = ufo->centralPoint.y;
-    ufo->shoot.points[0].z = 1.0f;
+    ufo->shoot.points->x = ufo->centralPoint.x;
+    ufo->shoot.points->y = ufo->centralPoint.y;
+    ufo->shoot.points->z = 1.0f;
 
     // dirección hacia el jugador, vector director calculado en 
     esat::Vec2 vecDir;
@@ -2930,8 +2934,8 @@ void DrawUfo(UFO* ufo) {
                 scale = 2.0f;
             }
 
-            points[i * 2] = (ufo->vertices[i].x  * scale) + ufo->centralPoint.x;
-            points[i * 2 + 1] = (ufo->vertices[i].y * scale) + ufo->centralPoint.y;
+            *(points + i * 2) = ((ufo->vertices + i)->x  * scale) + ufo->centralPoint.x;
+            *(points + i * 2 + 1) = ((ufo->vertices + i)->y * scale) + ufo->centralPoint.y;
         }
 
         esat::DrawSolidPath(points, ufo->numVertices, true);
@@ -2941,8 +2945,8 @@ void DrawUfo(UFO* ufo) {
 void UpdateUFOShoot(UFO* ufo) {
     if (!ufo->shoot.isVisible) return;
 
-    ufo->shoot.points[0].x += ufo->shoot.vectorDirector.x;
-    ufo->shoot.points[0].y += ufo->shoot.vectorDirector.y;
+    ufo->shoot.points->x += ufo->shoot.vectorDirector.x;
+    ufo->shoot.points->y += ufo->shoot.vectorDirector.y;
 
     ufo->shoot.distanceTravelled += 1.0f;
 
@@ -2960,10 +2964,10 @@ void DrawUFOShoot(UFO* ufo) {
     esat::DrawSetStrokeColor(255, 255, 255, 255);
 
     float line[4] = {
-        ufo->shoot.points[0].x,
-        ufo->shoot.points[0].y,
-        ufo->shoot.points[0].x - ufo->shoot.vectorDirector.x,
-        ufo->shoot.points[0].y - ufo->shoot.vectorDirector.y
+        ufo->shoot.points->x,
+        ufo->shoot.points->y,
+        ufo->shoot.points->x - ufo->shoot.vectorDirector.x,
+        ufo->shoot.points->y - ufo->shoot.vectorDirector.y
     };
 
     esat::DrawSolidPath(line, 2, false);
@@ -3088,7 +3092,7 @@ int esat::main(int argc, char **argv) {
                 pendingLevelChange = true;
  
                 for (int l = 0; l < totalAsteroidsPerLevels; l++) {
-                    if (asteroids[l].isAlive) {
+                    if ((*(asteroids + l)).isAlive) {
                         pendingLevelChange = false;
                     }
                 }
@@ -3114,20 +3118,20 @@ int esat::main(int argc, char **argv) {
                         int nextI = (i + 1) % 5;
                         
                         for (int j = 0; j < totalAsteroidsPerLevels; j++) {
-                            if (asteroids[j].canCollide) {
-                                for (int k = 0; k < asteroids[j].numVertices; k++) {
+                            if ((*(asteroids + j)).canCollide) {
+                                for (int k = 0; k < (*(asteroids + j)).numVertices; k++) {
 
-                                    int nextK = (k + 1) % asteroids[j].numVertices;
+                                    int nextK = (k + 1) % (*(asteroids + j)).numVertices;
 
-                                    //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.points[i].x + shipPlayer.centralPoint.x, shipPlayer.points[i].y + shipPlayer.centralPoint.y);
-                                    //printf("Puntos asteroids: [%f]   ----    [%f] \n", asteroids[j].vertices[k].x + + asteroids[j].centralPoint.x, asteroids[j].vertices[k].y + + asteroids[j].centralPoint.y);
+                                    //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.*(points + i).x + shipPlayer.centralPoint.x, shipPlayer.*(points + i).y + shipPlayer.centralPoint.y);
+                                    //printf("Puntos asteroids: [%f]   ----    [%f] \n", *(asteroids + j).*(vertices + k).x + + *(asteroids + j).centralPoint.x, *(asteroids + j).*(vertices + k).y + + *(asteroids + j).centralPoint.y);
 
                                     esat::Vec2 centralPointShip = {shipPlayer.centralPoint.x, shipPlayer.centralPoint.y};
-                                    esat::Vec2 centralPointAsteroid = {asteroids[j].centralPoint.x, asteroids[j].centralPoint.y};
+                                    esat::Vec2 centralPointAsteroid = {(*(asteroids + j)).centralPoint.x, (*(asteroids + j)).centralPoint.y};
 
                                     float scaleAsteroid = 25.0f;
 
-                                    switch (asteroids[j].level) {
+                                    switch ((*(asteroids + j)).level) {
                                         case AsteroidsLevel::LEVEL_1:
                                             scaleAsteroid *= 1;
                                         break;
@@ -3139,16 +3143,16 @@ int esat::main(int argc, char **argv) {
                                         break;
                                     };
 
-                                    esat::Vec2 point1 = {shipPlayer.points[i].x + centralPointShip.x, shipPlayer.points[i].y + centralPointShip.y};
-                                    esat::Vec2 point2 = {shipPlayer.points[nextI].x + centralPointShip.x, shipPlayer.points[nextI].y + centralPointShip.y};
-                                    esat::Vec2 point3 = {(asteroids[j].vertices[k].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[k].y * scaleAsteroid) + centralPointAsteroid.y};
-                                    esat::Vec2 point4 = {(asteroids[j].vertices[nextK].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[nextK].y * scaleAsteroid) + centralPointAsteroid.y};
+                                    esat::Vec2 point1 = {(*(shipPlayer.points + i)).x + centralPointShip.x, (*(shipPlayer.points + i)).y + centralPointShip.y};
+                                    esat::Vec2 point2 = {(*(shipPlayer.points + nextI)).x + centralPointShip.x, (*(shipPlayer.points + nextI)).y + centralPointShip.y};
+                                    esat::Vec2 point3 = {(((*(asteroids + j)).vertices + k)->x * scaleAsteroid) + centralPointAsteroid.x, (((*(asteroids + j)).vertices + k)->y * scaleAsteroid) + centralPointAsteroid.y};
+                                    esat::Vec2 point4 = {(((*(asteroids + j)).vertices + nextK)->x * scaleAsteroid) + centralPointAsteroid.x, (((*(asteroids + j)).vertices + nextK)->y * scaleAsteroid) + centralPointAsteroid.y};
 
                                     if (CollisionDetected(point1, point2, point3, point4)) {
                                         collision = true;
-                                        asteroids[j].deadZone = asteroids[j].centralPoint;
-                                        SpawnAsteroidParticles({asteroids[j].deadZone.x, asteroids[j].deadZone.y});
-                                        BrokeAsteroid(&asteroids[j]);
+                                        (*(asteroids + j)).deadZone = (*(asteroids + j)).centralPoint;
+                                        SpawnAsteroidParticles({(*(asteroids + j)).deadZone.x, (*(asteroids + j)).deadZone.y});
+                                        BrokeAsteroid(&*(asteroids + j));
                                         break;
                                     }
                                 }
@@ -3164,22 +3168,22 @@ int esat::main(int argc, char **argv) {
                 // Colision de las balas del player con asteroids
                 bool bulletCollision = false;
                 for (int i = 0; i < shipPlayer.numberShoots && !bulletCollision; i++) {
-                    if (shipPlayer.shoots[i].isVisible) {
+                    if ((*(shipPlayer.shoots + i)).isVisible) {
                         for (int j = 0; j < totalAsteroidsPerLevels; j++) {
-                            if (asteroids[j].canCollide) {
-                                for (int k = 0; k < asteroids[j].numVertices; k++) {
+                            if ((*(asteroids + j)).canCollide) {
+                                for (int k = 0; k < (*(asteroids + j)).numVertices; k++) {
 
-                                    int nextK = (k + 1) % asteroids[j].numVertices;
+                                    int nextK = (k + 1) % (*(asteroids + j)).numVertices;
 
-                                    //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.points[i].x + shipPlayer.centralPoint.x, shipPlayer.points[i].y + shipPlayer.centralPoint.y);
-                                    //printf("Puntos asteroids: [%f]   ----    [%f] \n", asteroids[j].vertices[k].x + + asteroids[j].centralPoint.x, asteroids[j].vertices[k].y + + asteroids[j].centralPoint.y);
+                                    //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.*(points + i).x + shipPlayer.centralPoint.x, shipPlayer.*(points + i).y + shipPlayer.centralPoint.y);
+                                    //printf("Puntos asteroids: [%f]   ----    [%f] \n", *(asteroids + j).*(vertices + k).x + + *(asteroids + j).centralPoint.x, *(asteroids + j).*(vertices + k).y + + *(asteroids + j).centralPoint.y);
 
-                                    esat::Vec2 centralPointBullet = {shipPlayer.shoots[i].points[0].x, shipPlayer.shoots[i].points[0].y};
-                                    esat::Vec2 centralPointAsteroid = {asteroids[j].centralPoint.x, asteroids[j].centralPoint.y};
+                                    esat::Vec2 centralPointBullet = {(*(shipPlayer.shoots + i)).points->x, (*(shipPlayer.shoots + i)).points->y};
+                                    esat::Vec2 centralPointAsteroid = {(*(asteroids + j)).centralPoint.x, (*(asteroids + j)).centralPoint.y};
 
                                     float scaleAsteroid = 25.0f;
 
-                                    switch (asteroids[j].level) {
+                                    switch ((*(asteroids + j)).level) {
                                         case AsteroidsLevel::LEVEL_1:
                                             scaleAsteroid *= 1;
                                         break;
@@ -3191,18 +3195,18 @@ int esat::main(int argc, char **argv) {
                                         break;
                                     };
 
-                                    esat::Vec2 point1 = {shipPlayer.shoots[i].points[0].x, shipPlayer.shoots[i].points[0].y};
-                                    esat::Vec2 point2 = {shipPlayer.shoots[i].points[0].x + shipPlayer.shoots[i].vectorDirector.x, shipPlayer.shoots[i].points[0].y + shipPlayer.shoots[i].vectorDirector.y};
-                                    esat::Vec2 point3 = {(asteroids[j].vertices[k].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[k].y * scaleAsteroid) + centralPointAsteroid.y};
-                                    esat::Vec2 point4 = {(asteroids[j].vertices[nextK].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[nextK].y * scaleAsteroid) + centralPointAsteroid.y};
+                                    esat::Vec2 point1 = {(*(shipPlayer.shoots + i)).points->x, (*(shipPlayer.shoots + i)).points->y};
+                                    esat::Vec2 point2 = {(*(shipPlayer.shoots + i)).points->x + (*(shipPlayer.shoots + i)).vectorDirector.x, (*(shipPlayer.shoots + i)).points->y + (*(shipPlayer.shoots + i)).vectorDirector.y};
+                                    esat::Vec2 point3 = {(((*(asteroids + j)).vertices + k)->x * scaleAsteroid) + centralPointAsteroid.x, (((*(asteroids + j)).vertices + k)->y * scaleAsteroid) + centralPointAsteroid.y};
+                                    esat::Vec2 point4 = {(((*(asteroids + j)).vertices + nextK)->x * scaleAsteroid) + centralPointAsteroid.x, (((*(asteroids + j)).vertices + nextK)->y * scaleAsteroid) + centralPointAsteroid.y};
 
 
                                     if (CollisionDetected(point1, point2, point3, point4)) {
                                         bulletCollision = true;
-                                        shipPlayer.shoots[i].isVisible = false;
-                                        asteroids[j].deadZone = asteroids[j].centralPoint;
-                                        SpawnAsteroidParticles({asteroids[j].deadZone.x, asteroids[j].deadZone.y});
-                                        BrokeAsteroid(&asteroids[j]);
+                                        (*(shipPlayer.shoots + i)).isVisible = false;
+                                        (*(asteroids + j)).deadZone = (*(asteroids + j)).centralPoint;
+                                        SpawnAsteroidParticles({(*(asteroids + j)).deadZone.x, (*(asteroids + j)).deadZone.y});
+                                        BrokeAsteroid(&*(asteroids + j));
                                         break;
                                     }
                                 }
@@ -3232,20 +3236,20 @@ int esat::main(int argc, char **argv) {
                     int nextI = (i + 1) % 12;
                     
                     for (int j = 0; j < totalAsteroidsPerLevels; j++) {
-                        if (asteroids[j].canCollide) {
-                            for (int k = 0; k < asteroids[j].numVertices; k++) {
+                        if ((*(asteroids + j)).canCollide) {
+                            for (int k = 0; k < (*(asteroids + j)).numVertices; k++) {
 
-                                int nextK = (k + 1) % asteroids[j].numVertices;
+                                int nextK = (k + 1) % (*(asteroids + j)).numVertices;
 
-                                //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.points[i].x + shipPlayer.centralPoint.x, shipPlayer.points[i].y + shipPlayer.centralPoint.y);
-                                //printf("Puntos asteroids: [%f]   ----    [%f] \n", asteroids[j].vertices[k].x + + asteroids[j].centralPoint.x, asteroids[j].vertices[k].y + + asteroids[j].centralPoint.y);
+                                //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.*(points + i).x + shipPlayer.centralPoint.x, shipPlayer.*(points + i).y + shipPlayer.centralPoint.y);
+                                //printf("Puntos asteroids: [%f]   ----    [%f] \n", *(asteroids + j).*(vertices + k).x + + *(asteroids + j).centralPoint.x, *(asteroids + j).*(vertices + k).y + + *(asteroids + j).centralPoint.y);
 
                                 esat::Vec2 centralPointUFO = {ufo.centralPoint.x, ufo.centralPoint.y};
-                                esat::Vec2 centralPointAsteroid = {asteroids[j].centralPoint.x, asteroids[j].centralPoint.y};
+                                esat::Vec2 centralPointAsteroid = {(*(asteroids + j)).centralPoint.x, (*(asteroids + j)).centralPoint.y};
 
                                 float scaleAsteroid = 25.0f;
 
-                                switch (asteroids[j].level) {
+                                switch ((*(asteroids + j)).level) {
                                     case AsteroidsLevel::LEVEL_1:
                                         scaleAsteroid *= 1;
                                     break;
@@ -3263,15 +3267,15 @@ int esat::main(int argc, char **argv) {
                                     scaleUFO = 2.0f;
                                 }
 
-                                esat::Vec2 point1 = {(ufo.vertices[i].x * scaleUFO) + centralPointUFO.x, (ufo.vertices[i].y * scaleUFO) + centralPointUFO.y};
-                                esat::Vec2 point2 = {(ufo.vertices[nextI].x * scaleUFO) + centralPointUFO.x, (ufo.vertices[nextI].y * scaleUFO) + centralPointUFO.y};
-                                esat::Vec2 point3 = {(asteroids[j].vertices[k].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[k].y * scaleAsteroid) + centralPointAsteroid.y};
-                                esat::Vec2 point4 = {(asteroids[j].vertices[nextK].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[nextK].y * scaleAsteroid) + centralPointAsteroid.y};
+                                esat::Vec2 point1 = {((*(ufo.vertices + i)).x * scaleUFO) + centralPointUFO.x, ((*(ufo.vertices + i)).y * scaleUFO) + centralPointUFO.y};
+                                esat::Vec2 point2 = {((*(ufo.vertices + nextI)).x * scaleUFO) + centralPointUFO.x, ((*(ufo.vertices + nextI)).y * scaleUFO) + centralPointUFO.y};
+                                esat::Vec2 point3 = {((((*(asteroids + j)).vertices + k))->x * scaleAsteroid) + centralPointAsteroid.x, (((*(asteroids + j)).vertices + k)->y * scaleAsteroid) + centralPointAsteroid.y};
+                                esat::Vec2 point4 = {((((*(asteroids + j)).vertices + nextK))->x * scaleAsteroid) + centralPointAsteroid.x, (((*(asteroids + j)).vertices + nextK)->y * scaleAsteroid) + centralPointAsteroid.y};
 
                                 if (CollisionDetected(point1, point2, point3, point4)) {
                                     ufoCollision = true;
-                                    asteroids[j].deadZone = asteroids[j].centralPoint;
-                                    SpawnAsteroidParticles({asteroids[j].deadZone.x, asteroids[j].deadZone.y});
+                                    (*(asteroids + j)).deadZone = (*(asteroids + j)).centralPoint;
+                                    SpawnAsteroidParticles({(*(asteroids + j)).deadZone.x, (*(asteroids + j)).deadZone.y});
                                     ufoSpawnTimer = 0;
                                     float yDistance = rand()%600;
                                     ufo.centralPoint = {-50.0f, yDistance, 0.0f};
@@ -3281,7 +3285,7 @@ int esat::main(int argc, char **argv) {
                                     ufo.canCollide = false;
                                     ufo.isLittle = !ufo.isLittle;
 
-                                    BrokeAsteroid(&asteroids[j]);
+                                    BrokeAsteroid(&*(asteroids + j));
                                     break;
                                 }
                             }
@@ -3294,12 +3298,12 @@ int esat::main(int argc, char **argv) {
 
                 bool bulletCollisionWithUFO = false;
                 for (int i = 0; i < shipPlayer.numberShoots && !bulletCollisionWithUFO; i++) {
-                    if (shipPlayer.shoots[i].isVisible) {
+                    if ((*(shipPlayer.shoots + i)).isVisible) {
                         for (int k = 0; k < 12; k++) {
 
                             int nextK = (k + 1) % 12;
 
-                            esat::Vec2 centralPointBullet = {shipPlayer.shoots[i].points[0].x, shipPlayer.shoots[i].points[0].y};
+                            esat::Vec2 centralPointBullet = {(*(shipPlayer.shoots + i)).points->x, (*(shipPlayer.shoots + i)).points->y};
                             esat::Vec2 centralPointUFO = {ufo.centralPoint.x, ufo.centralPoint.y};
 
                             float scaleUFO = 8.0f;
@@ -3308,10 +3312,10 @@ int esat::main(int argc, char **argv) {
                                 scaleUFO = 2.0f;
                             }
 
-                            esat::Vec2 point1 = {(ufo.vertices[k].x * scaleUFO) + centralPointUFO.x, (ufo.vertices[k].y * scaleUFO) + centralPointUFO.y};
-                            esat::Vec2 point2 = {(ufo.vertices[nextK].x * scaleUFO) + centralPointUFO.x, (ufo.vertices[nextK].y * scaleUFO) + centralPointUFO.y};
+                            esat::Vec2 point1 = {((*(ufo.vertices + k)).x * scaleUFO) + centralPointUFO.x, ((*(ufo.vertices + k)).y * scaleUFO) + centralPointUFO.y};
+                            esat::Vec2 point2 = {((*(ufo.vertices + nextK)).x * scaleUFO) + centralPointUFO.x, ((*(ufo.vertices + nextK)).y * scaleUFO) + centralPointUFO.y};
                             esat::Vec2 point3 = centralPointBullet;
-                            esat::Vec2 point4 = {centralPointBullet.x - (shipPlayer.shoots[i].vectorDirector.x * 2), centralPointBullet.y - (shipPlayer.shoots[i].vectorDirector.y * 2)};
+                            esat::Vec2 point4 = {centralPointBullet.x - ((*(shipPlayer.shoots + i)).vectorDirector.x * 2), centralPointBullet.y - ((*(shipPlayer.shoots + i)).vectorDirector.y * 2)};
 
 
                             if (CollisionDetected(point1, point2, point3, point4)) {
@@ -3327,7 +3331,7 @@ int esat::main(int argc, char **argv) {
                                     }
                                 }
                                 
-                                shipPlayer.shoots[i].isVisible = false;
+                                (*(shipPlayer.shoots + i)).isVisible = false;
                                 ufoSpawnTimer = 0;
                                 float yDistance = rand()%600;
                                 ufo.centralPoint = {-50.0f, yDistance, 0.0f};
@@ -3354,20 +3358,20 @@ int esat::main(int argc, char **argv) {
                     int nextI = (i + 1) % 12;
                     
                     for (int j = 0; j < totalAsteroidsPerLevels; j++) {
-                        if (asteroids[j].canCollide) {
-                            for (int k = 0; k < asteroids[j].numVertices; k++) {
+                        if ((*(asteroids + j)).canCollide) {
+                            for (int k = 0; k < (*(asteroids + j)).numVertices; k++) {
 
-                                int nextK = (k + 1) % asteroids[j].numVertices;
+                                int nextK = (k + 1) % (*(asteroids + j)).numVertices;
 
-                                //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.points[i].x + shipPlayer.centralPoint.x, shipPlayer.points[i].y + shipPlayer.centralPoint.y);
-                                //printf("Puntos asteroids: [%f]   ----    [%f] \n", asteroids[j].vertices[k].x + + asteroids[j].centralPoint.x, asteroids[j].vertices[k].y + + asteroids[j].centralPoint.y);
+                                //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.*(points + i).x + shipPlayer.centralPoint.x, shipPlayer.*(points + i).y + shipPlayer.centralPoint.y);
+                                //printf("Puntos asteroids: [%f]   ----    [%f] \n", *(asteroids + j).*(vertices + k).x + + *(asteroids + j).centralPoint.x, *(asteroids + j).*(vertices + k).y + + *(asteroids + j).centralPoint.y);
 
-                                esat::Vec2 centralPointBullet = {ufo.shoot.points[0].x, ufo.shoot.points[0].y};
-                                esat::Vec2 centralPointAsteroid = {asteroids[j].centralPoint.x, asteroids[j].centralPoint.y};
+                                esat::Vec2 centralPointBullet = {ufo.shoot.points->x, ufo.shoot.points->y};
+                                esat::Vec2 centralPointAsteroid = {(*(asteroids + j)).centralPoint.x, (*(asteroids + j)).centralPoint.y};
 
                                 float scaleAsteroid = 25.0f;
 
-                                switch (asteroids[j].level) {
+                                switch ((*(asteroids + j)).level) {
                                     case AsteroidsLevel::LEVEL_1:
                                         scaleAsteroid *= 1;
                                     break;
@@ -3387,17 +3391,17 @@ int esat::main(int argc, char **argv) {
 
                                 esat::Vec2 point1 = {centralPointBullet.x, centralPointBullet.y};
                                 esat::Vec2 point2 = {centralPointBullet.x - (ufo.shoot.vectorDirector.x * 2), centralPointBullet.y - (ufo.shoot.vectorDirector.y * 2)};
-                                esat::Vec2 point3 = {(asteroids[j].vertices[k].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[k].y * scaleAsteroid) + centralPointAsteroid.y};
-                                esat::Vec2 point4 = {(asteroids[j].vertices[nextK].x * scaleAsteroid) + centralPointAsteroid.x, (asteroids[j].vertices[nextK].y * scaleAsteroid) + centralPointAsteroid.y};
+                                esat::Vec2 point3 = {(((*(asteroids + j)).vertices + k)->x * scaleAsteroid) + centralPointAsteroid.x, (((*(asteroids + j)).vertices + k)->y * scaleAsteroid) + centralPointAsteroid.y};
+                                esat::Vec2 point4 = {(((*(asteroids + j)).vertices + nextK)->x * scaleAsteroid) + centralPointAsteroid.x, (((*(asteroids + j)).vertices + nextK)->y * scaleAsteroid) + centralPointAsteroid.y};
 
                                 if (CollisionDetected(point1, point2, point3, point4)) {
                                     ufoCollisionBulletAsteroid = true;
-                                    asteroids[j].deadZone = asteroids[j].centralPoint;
-                                    SpawnAsteroidParticles({asteroids[j].deadZone.x, asteroids[j].deadZone.y});
+                                    (*(asteroids + j)).deadZone = (*(asteroids + j)).centralPoint;
+                                    SpawnAsteroidParticles({(*(asteroids + j)).deadZone.x, (*(asteroids + j)).deadZone.y});
                                     ufoShootTimer = 0;
                                     ufo.shoot.isVisible = false;
 
-                                    BrokeAsteroid(&asteroids[j]);
+                                    BrokeAsteroid(&*(asteroids + j));
                                     break;
                                 }
                             }
@@ -3414,16 +3418,16 @@ int esat::main(int argc, char **argv) {
 
                     int nextI = (i + 1) % 5;
 
-                    //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.points[i].x + shipPlayer.centralPoint.x, shipPlayer.points[i].y + shipPlayer.centralPoint.y);
-                    //printf("Puntos asteroids: [%f]   ----    [%f] \n", asteroids[j].vertices[k].x + + asteroids[j].centralPoint.x, asteroids[j].vertices[k].y + + asteroids[j].centralPoint.y);
+                    //printf("Puntos nave: [%f]   ----    [%f] \n", shipPlayer.*(points + i).x + shipPlayer.centralPoint.x, shipPlayer.*(points + i).y + shipPlayer.centralPoint.y);
+                    //printf("Puntos asteroids: [%f]   ----    [%f] \n", *(asteroids + j).*(vertices + k).x + + *(asteroids + j).centralPoint.x, *(asteroids + j).*(vertices + k).y + + *(asteroids + j).centralPoint.y);
 
-                    esat::Vec2 centralPointBullet = {ufo.shoot.points[0].x, ufo.shoot.points[0].y};
+                    esat::Vec2 centralPointBullet = {ufo.shoot.points->x, ufo.shoot.points->y};
                     esat::Vec2 centralPointShip = {shipPlayer.centralPoint.x, shipPlayer.centralPoint.y};
 
                     esat::Vec2 point1 = {centralPointBullet.x, centralPointBullet.y};
                     esat::Vec2 point2 = {centralPointBullet.x - (ufo.shoot.vectorDirector.x * 2), centralPointBullet.y - (ufo.shoot.vectorDirector.y * 2)};
-                    esat::Vec2 point3 = {shipPlayer.points[i].x + centralPointShip.x, shipPlayer.points[i].y + centralPointShip.y};
-                    esat::Vec2 point4 = {shipPlayer.points[nextI].x + centralPointShip.x, shipPlayer.points[nextI].y + centralPointShip.y};
+                    esat::Vec2 point3 = {(*(shipPlayer.points + i)).x + centralPointShip.x, (*(shipPlayer.points + i)).y + centralPointShip.y};
+                    esat::Vec2 point4 = {(*(shipPlayer.points + nextI)).x + centralPointShip.x, (*(shipPlayer.points + nextI)).y + centralPointShip.y};
 
                     //esat::DrawSetStrokeColor(255,0,0);
 
