@@ -21,7 +21,7 @@ esat::Vec3* points = (esat::Vec3*) malloc (numPoints * sizeof(esat::Vec3));
 
 Game currentGame;
 
-esat::Vec2 stickPosition, stickLoginPosition, stickSecondLoginPosition, adminSectionStickPosition;
+esat::Vec2 stickPosition, stickPositionEdit, stickLoginPosition, stickSecondLoginPosition, adminSectionStickPosition;
 
 char* nickname = (char*) malloc (1);
 int nicknameLength = 0;
@@ -715,6 +715,9 @@ void InitConfig() {
     stickPosition.x = windowX / 7;
     stickPosition.y = windowY / 4;
 
+    stickPositionEdit.x = windowX / 7;
+    stickPositionEdit.y = windowY / 4;
+
     // Variables que se modifican con el login
     stickLoginPosition.x = windowX / 7;
     stickLoginPosition.y = windowY / 2.5f;
@@ -848,6 +851,17 @@ void DrawStickBar() {
     }
 }
 
+void DrawStickBarEdit() {
+
+    int c = ((esat::Time()/100.0f) - tempStickBar);
+
+    esat::DrawSetTextSize(24);
+
+    if (c % 10 != 0) {
+        esat::DrawText(stickPositionEdit.x, stickPositionEdit.y, "--o");
+    }
+}
+
 void DrawAdminSectionStickBar() {
     int c = ((esat::Time()/100.0f) - tempStickBar);
 
@@ -924,25 +938,25 @@ void ControlsDetect() {
             }
         break;
         case Scenes::EDIT_SECTION:
-            DrawStickBar();
+            DrawStickBarEdit();
 
             if (esat::IsSpecialKeyDown(esat::kSpecialKey_Tab)) {
-                if (stickPosition.y == windowY / 4) {
-                    stickPosition.y = windowY / 3.2f;
-                } else if (stickPosition.y == windowY / 3.2f) {
-                    stickPosition.y = windowY / 2.6f;
-                } else if (stickPosition.y == windowY / 2.6f) {
-                    stickPosition.y = windowY / 2.2f;
-                } else if (stickPosition.y == windowY / 2.2f) {
-                    stickPosition.y = windowY / 1.9f;
-                } else if (stickPosition.y == windowY / 1.9f) {
-                    stickPosition.y = windowY / 1.7f;
-                } else if (stickPosition.y == windowY / 1.7f) {
-                    stickPosition.y = windowY / 1.5f;
-                } else if (stickPosition.y == windowY - 50) {
-                    stickPosition.y = windowY / 4;
+                if (stickPositionEdit.y == windowY / 4) {
+                    stickPositionEdit.y = windowY / 3.2f;
+                } else if (stickPositionEdit.y == windowY / 3.2f) {
+                    stickPositionEdit.y = windowY / 2.6f;
+                } else if (stickPositionEdit.y == windowY / 2.6f) {
+                    stickPositionEdit.y = windowY / 2.2f;
+                } else if (stickPositionEdit.y == windowY / 2.2f) {
+                    stickPositionEdit.y = windowY / 1.9f;
+                } else if (stickPositionEdit.y == windowY / 1.9f) {
+                    stickPositionEdit.y = windowY / 1.7f;
+                } else if (stickPositionEdit.y == windowY / 1.7f) {
+                    stickPositionEdit.y = windowY / 1.5f;
+                } else if (stickPositionEdit.y == windowY - 50) {
+                    stickPositionEdit.y = windowY / 4;
                 } else {
-                    stickPosition.y = windowY - 50;
+                    stickPositionEdit.y = windowY - 50;
                 }
 
                 currentEditField = (currentEditField + 1) % 8;
@@ -1000,7 +1014,7 @@ void ControlsDetect() {
                     stickPosition.y = windowY - 50;
                 }
 
-                currentField = (currentField + 1) % 8;
+                currentField = (currentField + 1) % 7;
             }
 
         break;
@@ -1388,7 +1402,7 @@ void HandleTextInputDynamic() {
         }
     }
 
-    if (currentField == 7) {
+    if (currentField == 6) {
         if (esat::IsSpecialKeyDown(esat::kSpecialKey_Enter)) {
             SaveUser();
 
@@ -3319,7 +3333,7 @@ int esat::main(int argc, char **argv) {
 
 
                             if (CollisionDetected(point1, point2, point3, point4)) {
-                                if (shipPlayer.isSecondPlayer) {
+                                if (!shipPlayer.isSecondPlayer) {
                                     puntuationInGame1 += 200;
                                     if (ufo.isLittle) {
                                         puntuationInGame1 += 100;
